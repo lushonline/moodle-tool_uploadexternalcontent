@@ -481,10 +481,22 @@ class tool_uploadexternalcontent_helper {
         require_once($CFG->libdir . '/filelib.php');
         $fs = get_file_storage();
 
-        $coursecontext = \context_course::instance($courseid);
+        $overviewfilesoptions = course_overviewfiles_options($courseid);
+        $filetypesutil = new \core_form\filetypes_util();
+        $whitelist = $filetypesutil->normalize_file_types($overviewfilesoptions['accepted_types']);
 
-        $ext = pathinfo($url, PATHINFO_EXTENSION);
+        $parsedurl = new moodle_url($url);
+
+        $ext = pathinfo($parsedurl->get_path(), PATHINFO_EXTENSION);
         $filename = 'thumbnail.'.$ext;
+
+        // Check the extension is valid.
+        if (!$filetypesutil->is_allowed_file_type($filename, $whitelist)) {
+            $response->status = "Thumbnail is an invalid type. Extension: ".$ext;
+            return $response;
+        }
+
+        $coursecontext = \context_course::instance($courseid);
 
         // Get the file if it already exists.
         $response->thumbnailfile = $fs->get_file($coursecontext->id, 'course', 'overviewfiles', 0, '/', $filename);
@@ -497,8 +509,8 @@ class tool_uploadexternalcontent_helper {
                 $response->status = "Thumbnail is the same source as current thumbnail, not updated";
                 return $response;
             } else {
-                // Delete and continue with download.
-                $response->thumbnailfile->delete();
+                // Delete files and continue with download.
+                $fs->delete_area_files($coursecontext->id, 'course', 'overviewfiles');
                 $response->thumbnailfile = null;
             }
         }
@@ -520,9 +532,17 @@ class tool_uploadexternalcontent_helper {
 
         try {
             $response->thumbnailfile = $fs->create_file_from_url($thumbnailfilerecord, $url, $urlparams);
-            $response->status = "Thumbnail downloaded and added.";
+            // Check if Moodle recognises as a valid image file.
+            if (!$response->thumbnailfile->is_valid_image()) {
+                $fs->delete_area_files($coursecontext->id, 'course', 'overviewfiles');
+                $response->thumbnailfile = null;
+                $response->status = "Thumbnail specified is not a valid image.";
+            } else {
+                $response->status = "Thumbnail downloaded and added.";
+            }
             return $response;
         } catch (\file_exception $e) {
+            $fs->delete_area_files($coursecontext->id, 'course', 'overviewfiles');
             $response->thumbnailfile = null;
             $response->status = "Thumbnail could not be retrieved. ".$e->getMessage();
             return $response;
