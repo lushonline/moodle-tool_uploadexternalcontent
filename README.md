@@ -1,11 +1,11 @@
 # tool_uploadexternalcontent
 [![Build Status](https://travis-ci.org/lushonline/moodle-tool_uploadexternalcontent.svg?branch=master)](https://travis-ci.org/lushonline/moodle-tool_uploadexternalcontent)
 
-A tool to allow import of HTML as External content activities using a comma separated value file (CSV).
+A tool to allow import of HTML as External content activities using a text delimited file (CSV).
 
 This import creates a Moodle Course, consisting of a Single External content activity.
 
-The External content activity EXTERNAL_CCONTENT column of the import is the HTML snippet from the file.
+The External content activity EXTERNAL_CONTENT column of the import is the HTML snippet from the file.
 
 The External content Activity and Course are setup to support Moodle Completion based on viewing of the Page,
 and optional also a completion imported from an external source if EXTERNAL_MARKCOMPLETEEXTERNALLY column is true
