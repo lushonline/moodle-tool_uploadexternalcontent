@@ -447,7 +447,7 @@ class tool_uploadexternalcontent_importer {
                             tool_uploadexternalcontent_helper::update_course_completion_criteria($mergedcourse, $cm);
                         }
 
-                        if ($activity) {
+                        if ($updateactivity) {
                             $DB->update_record('externalcontent',  $mergedactivity);
                             $cm = get_coursemodule_from_instance('externalcontent',  $mergedactivity->id);
                             $cm->idnumber = $course->idnumber;
