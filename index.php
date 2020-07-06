@@ -78,7 +78,7 @@ $mform2 = new tool_uploadexternalcontent_import_confirm_form(null, $importer);
 
 // Was the second form submitted.
 if ($form2data = $mform2->is_cancelled()) {
-    redirect($returnurl);
+    redirect($url);
 } else if ($form2data = $mform2->get_data()) {
     $importid = $form2data->importid;
     $category = $form2data->category;
