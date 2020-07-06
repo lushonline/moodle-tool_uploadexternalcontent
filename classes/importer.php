@@ -496,5 +496,6 @@ class tool_uploadexternalcontent_importer {
 
         $tracker->finish();
         $tracker->results($total, $created, $updated, $deleted, $nochange, $errors);
+        return $tracker->get_buffer();
     }
 }
