@@ -197,13 +197,13 @@ class tool_uploadexternalcontent_helper {
     }
 
     /**
-     * Merge changes from $importedcourse into $existingcourse
+     * Merge changes from $imported course into $existing course
      *
      * @param object $existing Course Record for existing course
      * @param object $imported  Course Record for imported course
      * @return object course or FALSE if no changes
      */
-    public static function update_course_with_import_course($existing, $imported) {
+    public static function update_course_with_imported($existing, $imported) {
         // Sort the tags arrays.
         sort($existing->tags);
         sort($imported->tags);
