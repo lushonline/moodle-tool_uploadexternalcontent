@@ -199,8 +199,8 @@ class tool_uploadexternalcontent_helper {
     /**
      * Merge changes from $importedcourse into $existingcourse
      *
-     * @param object $existingcourse Course Record for existing course
-     * @param object $importedcourse  Course Record for imported course
+     * @param object $existing Course Record for existing course
+     * @param object $imported  Course Record for imported course
      * @return object course or FALSE if no changes
      */
     public static function update_course_with_import_course($existing, $imported) {
