@@ -49,19 +49,19 @@ class tool_uploadexternalcontent_helper {
         // course idnumber.
         // course shortname.
         // course longname.
+        // external name.
+        // external intro.
+        // external content.
 
-        if (empty($record->course_idnumber)) {
-            return false;
-        }
+        $isvalid = true;
+        $isvalid = $isvalid && !empty($record->course_idnumber);
+        $isvalid = $isvalid && !empty($record->course_shortname);
+        $isvalid = $isvalid && !empty($record->course_fullname);
+        $isvalid = $isvalid && !empty($record->external_name);
+        $isvalid = $isvalid && !empty($record->external_intro);
+        $isvalid = $isvalid && !empty($record->external_content);
 
-        if (empty($record->course_shortname)) {
-            return false;
-        }
-
-        if (empty($record->course_fullname)) {
-            return false;
-        }
-        return true;
+        return $isvalid;
     }
 
     /**
@@ -115,9 +115,7 @@ class tool_uploadexternalcontent_helper {
         $categoryid = $record->category;
 
         if (!empty($record->course_categoryidnumber)) {
-            $categoryid = self::resolve_category_by_idnumber($record->course_categoryidnumber);
-            if ($categoryid === false) {
-
+            if (!$categoryid = self::resolve_category_by_idnumber($record->course_categoryidnumber)) {
                 if (!empty($record->course_categoryname)) {
                     // Category not found and we have a name so we need to create.
                     $category = new \stdClass();
@@ -148,23 +146,15 @@ class tool_uploadexternalcontent_helper {
         global $DB;
 
         $params = array('idnumber' => $courseidnumber);
-        $courses = $DB->get_records('course', $params);
-
-        if (count($courses) == 1) {
-            $course = array_pop($courses);
+        if ($course = $DB->get_record('course', $params)) {
             $tags = core_tag_tag::get_item_tags_array('core', 'course', $course->id,
                                         core_tag_tag::BOTH_STANDARD_AND_NOT, 0, false);
-
             $course->tags = array();
-
-            foreach ($tags as $key => $value) {
+            foreach ($tags as $value) {
                 array_push($course->tags, $value);
             }
-
-            return $course;
-        } else {
-            return null;
         }
+        return $course;
     }
 
     /**
@@ -183,11 +173,10 @@ class tool_uploadexternalcontent_helper {
         $course->summaryformat = 1; // FORMAT_HTML.
         $course->visible = $record->course_visible;
 
+        $course->tags = array();
         // Split the tag string into an array.
         if (!empty($record->course_tags)) {
             $course->tags = explode($tagdelimiter, $record->course_tags);
-        } else {
-            $course->tags = array();
         }
 
         // Fixed default values.
@@ -208,88 +197,34 @@ class tool_uploadexternalcontent_helper {
     }
 
     /**
-     * Entity decode value passed for use by array_walk
-     *
-     * @param  mixed $value
-     * @param  mixed $key
-     * @return void
-     */
-    public static function entity_decode_values(&$value, $key) {
-        $value = html_entity_decode($value);
-    }
-
-    /**
      * Merge changes from $importedcourse into $existingcourse
      *
      * @param object $existingcourse Course Record for existing course
      * @param object $importedcourse  Course Record for imported course
      * @return object course or FALSE if no changes
      */
-    public static function update_course_with_imported($existingcourse, $importedcourse) {
-        $updateneeded = false;
-        $result = $existingcourse;
-        $updates = array();
+    public static function update_course_with_import_course($existing, $imported) {
+        // Sort the tags arrays.
+        sort($existing->tags);
+        sort($imported->tags);
 
-        if ($existingcourse->fullname !== $importedcourse->fullname) {
-            array_push($updates, "fullname is different");
-            $result->fullname = $importedcourse->fullname;
-            $updateneeded = true;
-        }
-
-        if ($existingcourse->shortname !== $importedcourse->shortname) {
-            array_push($updates, "shortname is different");
-            $result->shortname = $importedcourse->shortname;
-            $updateneeded = true;
-        }
-
-        if ($existingcourse->idnumber !== $importedcourse->idnumber) {
-            array_push($updates, "idnumber is different");
-            $result->idnumber = $importedcourse->idnumber;
-            $updateneeded = true;
-        }
+        $result = clone $existing;
+        $result->fullname = $imported->fullname;
+        $result->shortname = $imported->shortname;
+        $result->idnumber = $imported->idnumber;
+        $result->visible = $imported->visible;
+        $result->tags = $imported->tags;
+        $result->category = $imported->category;
 
         // We need to apply Moodle FORMAT_HTML conversion as this is how summary would have been stored.
-        $options = array();
-        $options['filter'] = false;
-        $formatted = format_text($importedcourse->summary, FORMAT_HTML, $options);
-
-        if ($existingcourse->summary !== $formatted) {
-            array_push($updates, "summary is different");
-            $result->summary = $importedcourse->summary;
-            $updateneeded = true;
+        if ($existing->summary !== format_text($imported->summary, FORMAT_HTML, array('filter' => false))) {
+            $result->summary = $imported->summary;
         }
 
-        $existingvisible = clean_param($existingcourse->visible, PARAM_BOOL);
-        $importedvisible = clean_param($importedcourse->visible, PARAM_BOOL);
-
-        if ($existingvisible !== $importedvisible) {
-            array_push($updates, "visible is different");
-            $result->visible = $importedcourse->visible;
-            $updateneeded = true;
-        }
-
-        // Sort the arrays and then compare.
-        array_walk($existingcourse->tags, 'self::entity_decode_values');
-        $existingtags = $existingcourse->tags;
-        $importedtags = $importedcourse->tags;
-
-        if (sort($existingtags) !== sort($importedtags)) {
-            array_push($updates, "tags are different");
-            $result->tags = $importedcourse->tags;
-            $updateneeded = true;
-        }
-
-        if ($existingcourse->category !== $importedcourse->category) {
-            array_push($updates, "category is different");
-            $result->category = $importedcourse->category;
-            $updateneeded = true;
-        }
-
-        if ($updateneeded) {
+        if ($result != $existing) {
             return $result;
-        } else {
-            return false;
         }
+        return false;
     }
 
     /**
@@ -303,13 +238,7 @@ class tool_uploadexternalcontent_helper {
         global $DB;
 
         $params = array('name' => $name, 'course' => $courseid);
-        $externalcontents = $DB->get_records('externalcontent', $params);
-
-        if (count($externalcontents) != 0) {
-             return array_pop($externalcontents);
-        } else {
-             return null;
-        }
+        return $DB->get_record('externalcontent', $params);
     }
 
     /**
@@ -330,13 +259,7 @@ class tool_uploadexternalcontent_helper {
         }
 
         $params = array('id' => $cm->instance, 'course' => $courseid);
-        $externalcontents = $DB->get_records('externalcontent', $params);
-
-        if (count($externalcontents) != 0) {
-             return array_pop($externalcontents);
-        } else {
-             return null;
-        }
+        return $DB->get_record('externalcontent', $params);
     }
 
     /**
@@ -371,50 +294,17 @@ class tool_uploadexternalcontent_helper {
      * @return object page or FALSE if no changes
      */
     public static function update_externalcontent_with_imported($existing, $imported) {
-        $updateneeded = false;
-        $result = $existing;
-        $updates = array();
+        $result = clone $existing;
 
-        if ($existing->name !== $imported->name) {
-            array_push($updates, "activity name is different");
-            $result->name = $imported->name;
-            $updateneeded = true;
-        }
+        $result->name = $imported->name;
+        $result->intro = $imported->intro;
+        $result->content = $imported->content;
+        $result->completionexternally = clean_param($imported->completionexternally, PARAM_BOOL);
 
-        // We need to apply Moodle FORMAT_HTML conversion as this is how summary would have been stored.
-        $options = array();
-        $formattedintro = format_text($imported->intro, FORMAT_HTML, $options);
-
-        if ($existing->intro !== $formattedintro) {
-            array_push($updates, "activity intro is different");
-            $result->intro = $imported->intro;
-            $updateneeded = true;
-        }
-
-        // We need to apply Moodle FORMAT_HTML conversion as this is how summary would have been stored.
-        $options = array('noclean' => 1);
-        $formattedcontent = format_text($imported->content, FORMAT_HTML, $options);
-
-        if ($existing->content !== $formattedcontent) {
-            array_push($updates, "activity content is different");
-            $result->content = $imported->content;
-            $updateneeded = true;
-        }
-
-        $existingcompletion = clean_param($existing->completionexternally, PARAM_BOOL);
-        $importedcompletion = clean_param($imported->completionexternally, PARAM_BOOL);
-
-        if ( $existingcompletion !== $importedcompletion) {
-            array_push($updates, "activity completionexternally is different");
-            $result->completionexternally = $imported->completionexternally;
-            $updateneeded = true;
-        }
-
-        if ($updateneeded) {
+        if ($result != $existing) {
             return $result;
-        } else {
-            return false;
         }
+        return false;
     }
 
     /**
@@ -428,7 +318,7 @@ class tool_uploadexternalcontent_helper {
         $criterion = new completion_criteria_activity();
 
         $params = array('id' => $course->id, 'criteria_activity' => array($cm->id => 1));
-        if ($currentcriteria = $criterion->fetch($params)) {
+        if ($criterion->fetch($params)) {
             return;
         }
 
@@ -441,25 +331,23 @@ class tool_uploadexternalcontent_helper {
         // Handle overall aggregation.
         $aggdata = array(
             'course'        => $course->id,
-            'criteriatype'  => null
+            'criteriatype'  => null,
+            'method' => COMPLETION_AGGREGATION_ALL
         );
+
         $aggregation = new completion_aggregation($aggdata);
-        $aggregation->setMethod(COMPLETION_AGGREGATION_ALL);
         $aggregation->save();
 
         $aggdata['criteriatype'] = COMPLETION_CRITERIA_TYPE_ACTIVITY;
         $aggregation = new completion_aggregation($aggdata);
-        $aggregation->setMethod(COMPLETION_AGGREGATION_ALL);
         $aggregation->save();
 
         $aggdata['criteriatype'] = COMPLETION_CRITERIA_TYPE_COURSE;
         $aggregation = new completion_aggregation($aggdata);
-        $aggregation->setMethod(COMPLETION_AGGREGATION_ALL);
         $aggregation->save();
 
         $aggdata['criteriatype'] = COMPLETION_CRITERIA_TYPE_ROLE;
         $aggregation = new completion_aggregation($aggdata);
-        $aggregation->setMethod(COMPLETION_AGGREGATION_ALL);
         $aggregation->save();
     }
 
@@ -492,7 +380,7 @@ class tool_uploadexternalcontent_helper {
 
         // Check the extension is valid.
         if (!$filetypesutil->is_allowed_file_type($filename, $whitelist)) {
-            $response->status = "Thumbnail is an invalid type. Extension: ".$ext;
+            $response->status = get_string('thumbnailinvalidext', 'tool_uploadexternalcontent', $ext);
             return $response;
         }
 
@@ -506,7 +394,7 @@ class tool_uploadexternalcontent_helper {
             $source = $response->thumbnailfile->get_source();
             if ($source == $url) {
                 // It is the same so return this file.
-                $response->status = "Thumbnail is the same source as current thumbnail, not updated";
+                $response->status = get_string('thumbnailsamesource', 'tool_uploadexternalcontent');
                 return $response;
             } else {
                 // Delete files and continue with download.
@@ -536,15 +424,15 @@ class tool_uploadexternalcontent_helper {
             if (!$response->thumbnailfile->is_valid_image()) {
                 $fs->delete_area_files($coursecontext->id, 'course', 'overviewfiles');
                 $response->thumbnailfile = null;
-                $response->status = "Thumbnail specified is not a valid image.";
+                $response->status = get_string('thumbnailinvalidtype', 'tool_uploadexternalcontent');
             } else {
-                $response->status = "Thumbnail downloaded and added.";
+                $response->status = get_string('thumbnaildownloaded', 'tool_uploadexternalcontent');
             }
             return $response;
         } catch (\file_exception $e) {
             $fs->delete_area_files($coursecontext->id, 'course', 'overviewfiles');
             $response->thumbnailfile = null;
-            $response->status = "Thumbnail could not be retrieved. ".$e->getMessage();
+            $response->status = get_string('thumbnaildownloaderror', 'tool_uploadexternalcontent', $e->getMessage());
             return $response;
         }
     }

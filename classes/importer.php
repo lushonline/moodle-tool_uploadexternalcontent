@@ -33,9 +33,9 @@ defined('MOODLE_INTERNAL') || die('Direct access to this script is forbidden.');
 class tool_uploadexternalcontent_importer {
 
     /**
-     * @var string $error   Last error message.
+     * @var array $error   Last error message.
      */
-    public $error = '';
+    public $error = array();
 
     /**
      * @var array $records   The records to process.
@@ -81,11 +81,9 @@ class tool_uploadexternalcontent_importer {
      * Return a Failure
      *
      * @param string $msg
-     * @return bool Always returns false
      */
     public function fail($msg) {
-        $this->error = $msg;
-        return false;
+        array_push($this->error, $msg);
     }
 
     /**
@@ -186,6 +184,54 @@ class tool_uploadexternalcontent_importer {
     }
 
     /**
+     *
+     * Validate as a minimum the CSV contains the same number of columns as we require
+     *
+     * @return bool
+     */
+    private function validateheaders() {
+
+        $foundcount = count($this->list_found_headers());
+        $requiredcount = count($this->list_required_headers());
+
+        if ($foundcount < $requiredcount) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     *
+     * Start a new CSV importer, and return true if successful
+     *
+     * @param string $text
+     * @param string $encoding
+     * @param string $delimiter
+     * @param string $type
+     * @return bool
+     */
+    private function startcsvimporter(
+                                    $text = null,
+                                    $encoding = null,
+                                    $delimiter = 'comma',
+                                    $type = 'csvimport' ) {
+        if ($text === null) {
+            return false;
+        }
+
+        $this->importid = csv_import_reader::get_new_iid($type);
+        $this->importer = new csv_import_reader($this->importid, $type);
+
+        if (!$this->importer->load_csv_content($text, $encoding, $delimiter)) {
+        $this->importer->cleanup();
+            return false;
+        }
+
+        return true;
+    }
+
+
+    /**
      * Constructor
      *
      * @param string $text
@@ -201,23 +247,15 @@ class tool_uploadexternalcontent_importer {
         require_once($CFG->libdir . '/csvlib.class.php');
 
         $type = 'externalcontentcourse';
+        $this->importid = $importid;
 
-        if (!$importid) {
-            if ($text === null) {
-                return;
-            }
-              $this->importid = csv_import_reader::get_new_iid($type);
-
-              $this->importer = new csv_import_reader($this->importid, $type);
-
-            if (!$this->importer->load_csv_content($text, $encoding, $delimiter)) {
+        if (!$this->importid) {
+            if (!$this->startcsvimporter($text, $encoding, $delimiter, $type)) {
                 $this->fail(get_string('invalidimportfile', 'tool_uploadexternalcontent'));
-                $this->importer->cleanup();
                 return;
             }
         } else {
-               $this->importid = $importid;
-               $this->importer = new csv_import_reader($this->importid, $type);
+            $this->importer = new csv_import_reader($this->importid, $type);
         }
 
         if (!$this->importer->init()) {
@@ -226,18 +264,21 @@ class tool_uploadexternalcontent_importer {
                return;
         }
 
-        if ($category != 1) {
-              $categorycheck = tool_uploadexternalcontent_helper::resolve_category_by_id_or_idnumber($category);
-            if ($categorycheck == null) {
-                $this->fail(get_string('invalidimportfile', 'tool_uploadexternalcontent'));
-                $this->importer->cleanup();
-                return;
-            } else {
-                $category = $categorycheck;
-            }
+        $categorycheck = tool_uploadexternalcontent_helper::resolve_category_by_id_or_idnumber($category);
+        if ($categorycheck == null) {
+            $this->fail(get_string('invalidparentcategoryid', 'tool_uploadexternalcontent'));
+            $this->importer->cleanup();
+            return;
+        } else {
+            $category = $categorycheck;
         }
 
         $this->foundheaders = $this->importer->get_columns();
+        if (!$this->validateheaders()) {
+            $this->fail(get_string('invalidimportfileheaders', 'tool_uploadexternalcontent'));
+            $this->importer->cleanup();
+            return;
+        }
 
         $record = null;
         $records = array();
@@ -269,10 +310,10 @@ class tool_uploadexternalcontent_importer {
         }
 
         $this->records = $records;
-
         $this->importer->close();
+
         if ($this->records == null) {
-               $this->fail(get_string('invalidimportfile', 'tool_uploadexternalcontent'));
+               $this->fail(get_string('invalidimportfilenorecords', 'tool_uploadexternalcontent'));
                return;
         }
     }
@@ -282,7 +323,17 @@ class tool_uploadexternalcontent_importer {
      *
      * @return string the last error
      */
-    public function get_error() {
+    public function haserrors() {
+        return count($this->error) > 0;
+    }
+
+
+    /**
+     * Get the error information array
+     *
+     * @return array the error messages
+     */
+    public function geterrors() {
         return $this->error;
     }
 
@@ -310,37 +361,35 @@ class tool_uploadexternalcontent_importer {
         $tracker->start();
 
         $generator = phpunit_util::get_data_generator();
-        $records = $this->records;
 
-        $total = 0;
-        $created = 0;
-        $updated = 0;
-        $deleted = 0;
-        $nochange = 0;
-        $errors = 0;
+        $total = $created = $updated = $deleted = $nochange = $errors = 0;
 
         // We will most certainly need extra time and memory to process big files.
         core_php_time_limit::raise();
         raise_memory_limit(MEMORY_EXTRA);
 
+        $coursecreatedmsg = get_string('statuscoursecreated', 'tool_uploadexternalcontent');
+        $courseupdatedmsg = get_string('statuscourseupdated', 'tool_uploadexternalcontent');
+        $coursenotupdatedmsg = get_string('statuscoursenotupdated', 'tool_uploadexternalcontent');
+        $extcreatedmsg = get_string('statusextcreated', 'tool_uploadexternalcontent');
+        $extupdatedmsg = get_string('statusextupdated', 'tool_uploadexternalcontent');
+        $invalidrecordmsg = get_string('invalidimportrecord', 'tool_uploadexternalcontent');
+
         // Now actually do the work.
-        foreach ($records as $record) {
+        foreach ($this->records as $record) {
+            $status = array();
             $this->linenb++;
             $total++;
-            $status = array();
 
             if (tool_uploadexternalcontent_helper::validate_import_record($record)) {
                 $course = tool_uploadexternalcontent_helper::create_course_from_imported($record);
                 $activity = tool_uploadexternalcontent_helper::create_externalcontent_from_imported($record);
 
                 if ($existing = tool_uploadexternalcontent_helper::get_course_by_idnumber($course->idnumber)) {
-                    $updatecourse = false;
-                    $mergedcourse = tool_uploadexternalcontent_helper::update_course_with_imported($existing, $course);
-                    if ($mergedcourse === false) {
+                    $updatecourse = true;
+                    if (!$mergedcourse = tool_uploadexternalcontent_helper::update_course_with_imported($existing, $course)) {
                         $updatecourse = false;
                         $mergedcourse = $existing;
-                    } else {
-                        $updatecourse = true;
                     }
 
                     if ($record->course_thumbnail != '') {
@@ -350,21 +399,20 @@ class tool_uploadexternalcontent_importer {
                     }
 
                     // Now check the externalcontent.
-                    $addactivity = false;
-                    $updateactivity = false;
+                    $addactivity = $updateactivity = false;
                     $existingactivity = tool_uploadexternalcontent_helper::get_externalcontent_by_idnumber($mergedcourse->idnumber,
                                         $mergedcourse->id);
 
                     if ($existingactivity) {
-                         $mergedactivity = tool_uploadexternalcontent_helper::update_externalcontent_with_imported(
+                        $addactivity = false;
+                        $updateactivity = true;
+
+                        $mergedactivity = tool_uploadexternalcontent_helper::update_externalcontent_with_imported(
                                             $existingactivity, $activity);
                         if ( $mergedactivity === false) {
                             $updateactivity = false;
                             $addactivity = false;
                             $mergedactivity = $activity;
-                        } else {
-                            $addactivity = false;
-                            $updateactivity = true;
                         }
                     } else {
                         $activity->course = $existing->id;
@@ -376,7 +424,7 @@ class tool_uploadexternalcontent_importer {
                     if ($updatecourse === false && $addactivity === false && $updateactivity === false) {
                         // Course data not changed.
                         $nochange++;
-                        $status[] = "Course not updated";
+                        $status[] = $coursenotupdatedmsg;
                         $tracker->output($this->linenb, true, $status, $mergedcourse);
                     } else {
                         // Course or external content differs so we need to update.
@@ -384,7 +432,7 @@ class tool_uploadexternalcontent_importer {
 
                         if ($updatecourse) {
                             update_course($mergedcourse);
-                            $status[] = "Course updated";
+                            $status[] = $courseupdatedmsg;
                         }
 
                         if ($addactivity) {
@@ -394,7 +442,8 @@ class tool_uploadexternalcontent_importer {
                             $cm = get_coursemodule_from_instance('externalcontent',  $mergedactivity->id);
                             $cm->idnumber = $mergedcourse->idnumber;
                             $DB->update_record('course_modules', $cm);
-                            $status[] = "Course updated - External content activity added";
+                            $status[] = $courseupdatedmsg;
+                            $status[] = $extcreatedmsg;
                             tool_uploadexternalcontent_helper::update_course_completion_criteria($mergedcourse, $cm);
                         }
 
@@ -403,14 +452,15 @@ class tool_uploadexternalcontent_importer {
                             $cm = get_coursemodule_from_instance('externalcontent',  $mergedactivity->id);
                             $cm->idnumber = $course->idnumber;
                             $DB->update_record('course_modules', $cm);
-                            $status[] = "Course updated - External content activity updated";
+                            $status[] = $courseupdatedmsg;
+                            $status[] = $extupdatedmsg;
                             tool_uploadexternalcontent_helper::update_course_completion_criteria($mergedcourse, $cm);
                         }
                         $tracker->output($this->linenb, true, $status, $mergedcourse);
                     }
                 } else {
                     $created++;
-                    $status[] = "Course created";
+                    $status[] = $coursecreatedmsg;
 
                     $newcourse = create_course($course);
                     $activity->course = $newcourse->id;
@@ -438,7 +488,7 @@ class tool_uploadexternalcontent_importer {
                 }
             } else {
                 $errors++;
-                $status[] = "Invalid Import Record";
+                $status[] = $invalidrecordmsg;
 
                 $tracker->output($this->linenb, false, $status, null);
             }
