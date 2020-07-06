@@ -223,7 +223,7 @@ class tool_uploadexternalcontent_importer {
         $this->importer = new csv_import_reader($this->importid, $type);
 
         if (!$this->importer->load_csv_content($text, $encoding, $delimiter)) {
-        $this->importer->cleanup();
+            $this->importer->cleanup();
             return false;
         }
 
