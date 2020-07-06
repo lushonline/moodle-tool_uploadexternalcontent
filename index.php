@@ -83,8 +83,8 @@ if ($form2data = $mform2->is_cancelled()) {
     $importid = $form2data->importid;
     $category = $form2data->category;
     $importer = new tool_uploadexternalcontent_importer(null, null, null, $category, $importid, $form2data);
-    $processingresponse = $importer->execute(new tool_uploadpage_tracker(
-        tool_uploadpage_tracker::OUTPUT_HTML, false)
+    $processingresponse = $importer->execute(new tool_uploadexternalcontent_tracker(
+        tool_uploadexternalcontent_tracker::OUTPUT_HTML, false)
     );
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string('uploadexternalcontentresult', 'tool_uploadexternalcontent'));
