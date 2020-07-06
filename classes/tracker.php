@@ -72,11 +72,211 @@ class tool_uploadexternalcontent_tracker {
      * Constructor.
      *
      * @param int $outputmode desired output mode.
+     * @param object $passthrough do we print output as well as buffering it.
+     *
      */
-    public function __construct($outputmode = self::NO_OUTPUT) {
+    public function __construct($outputmode = self::NO_OUTPUT, $passthrough = null) {
         $this->outputmode = $outputmode;
         if ($this->outputmode == self::OUTPUT_PLAIN) {
-            $this->buffer = new progress_trace_buffer(new text_progress_trace());
+            $this->buffer = new progress_trace_buffer(new text_progress_trace(), $passthrough);
+        }
+
+        if ($this->outputmode == self::OUTPUT_HTML) {
+            $this->buffer = new progress_trace_buffer(new text_progress_trace(), $passthrough);
+        }
+    }
+
+    /**
+     * Get the outcome indicator
+     *
+     * @param bool $outcome success or not?
+     * @return object
+     */
+    private function getoutcomeindicator($outcome) {
+        global $OUTPUT;
+
+        switch ($this->outputmode) {
+            case self::OUTPUT_PLAIN:
+                return $outcome ? 'OK' : 'NOK';
+            case self::OUTPUT_HTML:
+                return $outcome ? $OUTPUT->pix_icon('i/valid', '') : $OUTPUT->pix_icon('i/invalid', '');
+            default:
+               return;
+        }
+    }
+
+    /**
+     * Write a HTML table cell
+     *
+     * @param object $message
+     * @param int $column
+     * @return void
+     */
+    private function writehtmltablecell($message, $column) {
+        $this->buffer->output(html_writer::tag('td',
+            $message,
+            array('class' => 'c' . $column)
+        ));
+    }
+
+    /**
+     * Write a HTML table column header
+     *
+     * @param string $message
+     * @param int $column
+     * @return void
+     */
+    private function writehtmltableheader($message, $column) {
+        $this->buffer->output(html_writer::tag('th',
+            $message,
+            array('class' => 'c' . $column,
+            'scope' => 'col'
+            )
+        ));
+    }
+
+    /**
+     * Write a HTML table row start
+     *
+     * @param int $row
+     * @return void
+     */
+    private function writehtmltablerowstart($row) {
+        $this->buffer->output(html_writer::start_tag('tr',
+                                array('class' => 'r' . $row))
+                            );
+    }
+
+    /**
+     * Write a HTML table row close
+     *
+     * @return void
+     */
+    private function writehtmltablerowend() {
+        $this->buffer->output(html_writer::end_tag('tr'));
+    }
+
+    /**
+     * Write a HTML list start
+     *
+     * @return void
+     */
+    private function writehtmlliststart() {
+        $this->buffer->output(html_writer::start_tag('ul'));
+    }
+
+    /**
+     * Write a HTML list item
+     *
+     * @param object $message
+     * @return void
+     */
+    private function writehtmllistitem($message) {
+        $this->buffer->output(html_writer::tag('li', $message));
+    }
+
+    /**
+     * Write a HTML list close
+     *
+     * @return void
+     */
+    private function writehtmllistend() {
+        $this->buffer->output(html_writer::end_tag('ul'));
+    }
+
+    /**
+     * Write a HTML table start
+     *
+     * @param string $summary
+     * @return void
+     */
+    private function writehtmltablestart($summary = null) {
+        $this->buffer->output(html_writer::start_tag('table',
+        array('class' => 'generaltable boxaligncenter flexible-wrap',
+        'summary' => $summary)));
+    }
+
+    /**
+     * Write a HTML table end
+     *
+     * @return void
+     */
+    private function writehtmltableend() {
+        $this->buffer->output(html_writer::end_tag('table'));
+    }
+
+    /**
+     * Output one more line.
+     *
+     * @param int $line line number.
+     * @param bool $outcome success or not?
+     * @param array $status array of statuses.
+     * @param object $data extra data to display.
+     * @return void
+     */
+    public function output($line, $outcome, $status, $data) {
+        if ($this->outputmode == self::NO_OUTPUT) {
+            return;
+        }
+
+        $message = array(
+            $line,
+            self::getoutcomeindicator($outcome),
+            isset($data->id) ? $data->id : '',
+            isset($data->shortname) ? $data->shortname : '',
+            isset($data->fullname) ? $data->fullname : '',
+            isset($data->idnumber) ? $data->idnumber : ''
+        );
+
+        if ($this->outputmode == self::OUTPUT_PLAIN) {
+            $this->buffer->output(implode("\t", $message));
+            $this->buffer->output(implode("\t  ", $status));
+        }
+
+        if ($this->outputmode == self::OUTPUT_HTML) {
+            $ci = 0;
+            $this->rownb++;
+            $this->writehtmltablerowstart($this->rownb % 2);
+            $this->writehtmltablecell($message[0], $ci++);
+            $this->writehtmltablecell($message[1], $ci++);
+            $this->writehtmltablecell($message[2], $ci++);
+            $this->writehtmltablecell($message[3], $ci++);
+            $this->writehtmltablecell($message[4], $ci++);
+            $this->writehtmltablecell($message[5], $ci++);
+            $this->writehtmltablecell(implode(html_writer::empty_tag('br'), $status), $ci++);
+            $this->writehtmltablerowend();
+        }
+    }
+
+    /**
+     * Start the output.
+     *
+     * @return void
+     */
+    public function start() {
+        if ($this->outputmode == self::NO_OUTPUT) {
+            return;
+        }
+
+        if ($this->outputmode == self::OUTPUT_PLAIN) {
+            $columns = array_flip($this->columns);
+            unset($columns['status']);
+            $columns = array_flip($columns);
+            $this->buffer->output(implode("\t", $columns));
+        }
+
+        if ($this->outputmode == self::OUTPUT_HTML) {
+            $ci = 0;
+            $this->writehtmltablestart(get_string('uploadexternalcontentresult', 'tool_uploadexternalcontent'));
+            $this->writehtmltablerowstart(0);
+            $this->writehtmltableheader(get_string('csvline', 'tool_uploadexternalcontent'), $ci++);
+            $this->writehtmltableheader(get_string('result', 'tool_uploadexternalcontent'), $ci++);
+            $this->writehtmltableheader(get_string('id', 'tool_uploadexternalcontent'), $ci++);
+            $this->writehtmltableheader(get_string('shortname'), $ci++);
+            $this->writehtmltableheader(get_string('fullname'), $ci++);
+            $this->writehtmltableheader(get_string('idnumber'), $ci++);
+            $this->writehtmltableheader(get_string('status'), $ci++);
+            $this->writehtmltablerowend();
         }
     }
 
@@ -91,7 +291,7 @@ class tool_uploadexternalcontent_tracker {
         }
 
         if ($this->outputmode == self::OUTPUT_HTML) {
-            echo html_writer::end_tag('table');
+            $this->writehtmltableend();
         }
     }
 
@@ -124,100 +324,26 @@ class tool_uploadexternalcontent_tracker {
             foreach ($message as $msg) {
                 $this->buffer->output($msg);
             }
-        } else if ($this->outputmode == self::OUTPUT_HTML) {
-            $buffer = new progress_trace_buffer(new html_list_progress_trace());
+        }
+
+        if ($this->outputmode == self::OUTPUT_HTML) {
+            $this->writehtmlliststart();
             foreach ($message as $msg) {
-                $buffer->output($msg);
+                $this->writehtmllistitem($msg);
             }
-            $buffer->finished();
+            $this->writehtmllistend();
         }
     }
 
     /**
-     * Output one more line.
-     *
-     * @param int $line line number.
-     * @param bool $outcome success or not?
-     * @param array $status array of statuses.
-     * @param object $data extra data to display.
-     * @return void
+     * Return text buffer.
+     * @return string buffered plain text
      */
-    public function output($line, $outcome, $status, $data) {
-        global $OUTPUT;
+    public function get_buffer() {
         if ($this->outputmode == self::NO_OUTPUT) {
-            return;
+            return "";
         }
-
-        if ($this->outputmode == self::OUTPUT_PLAIN) {
-            $message = array(
-                $line,
-                $outcome ? 'OK' : 'NOK',
-                isset($data->id) ? $data->id : '',
-                isset($data->shortname) ? $data->shortname : '',
-                isset($data->fullname) ? $data->fullname : '',
-                isset($data->idnumber) ? $data->idnumber : ''
-            );
-            $this->buffer->output(implode("\t", $message));
-            if (!empty($status)) {
-                foreach ($status as $st) {
-                    $this->buffer->output($st, 1);
-                }
-            }
-        } else if ($this->outputmode == self::OUTPUT_HTML) {
-            $ci = 0;
-            $this->rownb++;
-            if (is_array($status)) {
-                $status = implode(html_writer::empty_tag('br'), $status);
-            }
-            if ($outcome) {
-                $outcome = $OUTPUT->pix_icon('i/valid', '');
-            } else {
-                $outcome = $OUTPUT->pix_icon('i/invalid', '');
-            }
-            echo html_writer::start_tag('tr', array('class' => 'r' . $this->rownb % 2));
-            echo html_writer::tag('td', $line, array('class' => 'c' . $ci++));
-            echo html_writer::tag('td', $outcome, array('class' => 'c' . $ci++));
-            echo html_writer::tag('td', isset($data->id) ? $data->id : '', array('class' => 'c' . $ci++));
-            echo html_writer::tag('td', isset($data->shortname) ? $data->shortname : '', array('class' => 'c' . $ci++));
-            echo html_writer::tag('td', isset($data->fullname) ? $data->fullname : '', array('class' => 'c' . $ci++));
-            echo html_writer::tag('td', isset($data->idnumber) ? $data->idnumber : '', array('class' => 'c' . $ci++));
-            echo html_writer::tag('td', $status, array('class' => 'c' . $ci++));
-            echo html_writer::end_tag('tr');
-        }
-    }
-
-    /**
-     * Start the output.
-     *
-     * @return void
-     */
-    public function start() {
-        if ($this->outputmode == self::NO_OUTPUT) {
-            return;
-        }
-
-        if ($this->outputmode == self::OUTPUT_PLAIN) {
-            $columns = array_flip($this->columns);
-            unset($columns['status']);
-            $columns = array_flip($columns);
-            $this->buffer->output(implode("\t", $columns));
-        } else if ($this->outputmode == self::OUTPUT_HTML) {
-            $ci = 0;
-            echo html_writer::start_tag('table', array('class' => 'generaltable boxaligncenter flexible-wrap',
-                'summary' => get_string('uploadexternalcontentresult', 'tool_uploadexternalcontent')));
-            echo html_writer::start_tag('tr', array('class' => 'heading r' . $this->rownb));
-            echo html_writer::tag('th', get_string('csvline', 'tool_uploadexternalcontent'),
-                array('class' => 'c' . $ci++, 'scope' => 'col'));
-            echo html_writer::tag('th', get_string('result', 'tool_uploadexternalcontent'),
-                                    array('class' => 'c' . $ci++, 'scope' => 'col'));
-            echo html_writer::tag('th', get_string('id', 'tool_uploadexternalcontent'),
-                                    array('class' => 'c' . $ci++, 'scope' => 'col'));
-            echo html_writer::tag('th', get_string('shortname'), array('class' => 'c' . $ci++, 'scope' => 'col'));
-            echo html_writer::tag('th', get_string('fullname'), array('class' => 'c' . $ci++, 'scope' => 'col'));
-            echo html_writer::tag('th', get_string('idnumber'), array('class' => 'c' . $ci++, 'scope' => 'col'));
-            echo html_writer::tag('th', get_string('status'), array('class' => 'c' . $ci++, 'scope' => 'col'));
-            echo html_writer::end_tag('tr');
-        }
+        return $this->buffer->get_buffer();
     }
 
 }

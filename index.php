@@ -34,7 +34,6 @@ $pagetitle = get_string('pluginname', 'tool_uploadexternalcontent');
 $context = context_system::instance();
 
 $url = new moodle_url("/admin/tool/uploadexternalcontent/index.php");
-$returnurl = new moodle_url("/admin/tool/uploadexternalcontent/index.php");
 $PAGE->set_context($context);
 $PAGE->set_url($url);
 $PAGE->set_title($pagetitle);
@@ -44,7 +43,6 @@ $PAGE->set_heading($pagetitle);
 $importid      = optional_param('importid', '', PARAM_INT);
 $confirm       = optional_param('confirm', '0', PARAM_BOOL);
 $needsconfirm  = optional_param('needsconfirm', '0', PARAM_BOOL);
-
 
 $text = null;
 $encoding = null;
@@ -69,7 +67,13 @@ if (empty($importid)) {
 }
 
 $importer = new tool_uploadexternalcontent_importer($text, $encoding, $delimiter);
-unset($text);
+if ($importer->haserrors() && empty($importid)) {
+    throw new moodle_exception('invalidfileexception',
+                                'tool_uploadexternalcontent',
+                                $url,
+                                implode(PHP_EOL, $importer->geterrors())
+    );
+}
 $mform2 = new tool_uploadexternalcontent_import_confirm_form(null, $importer);
 
 // Was the second form submitted.
@@ -79,15 +83,14 @@ if ($form2data = $mform2->is_cancelled()) {
     $importid = $form2data->importid;
     $category = $form2data->category;
     $importer = new tool_uploadexternalcontent_importer(null, null, null, $category, $importid, $form2data);
-    $error = $importer->get_error();
-    if ($error) {
-        redirect($returnurl);
-    } else {
-        echo $OUTPUT->header();
-        echo $OUTPUT->heading(get_string('uploadexternalcontentresult', 'tool_uploadexternalcontent'));
-        $records = $importer->execute(new tool_uploadexternalcontent_tracker(tool_uploadexternalcontent_tracker::OUTPUT_HTML));
-        echo $OUTPUT->continue_button($url);
-    }
+    $processingresponse = $importer->execute(new tool_uploadexternalcontent_tracker(
+        tool_uploadexternalcontent_tracker::OUTPUT_HTML, false)
+    );
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('uploadexternalcontentresult', 'tool_uploadexternalcontent'));
+    echo $processingresponse;
+    echo $OUTPUT->continue_button($url);
+
 } else {
     // First time.
     echo $OUTPUT->header();

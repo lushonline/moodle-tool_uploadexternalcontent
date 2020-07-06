@@ -24,7 +24,6 @@
 
 $string['pluginname'] = 'Upload external content courses';
 $string['importfile'] = 'CSV file';
-$string['invalidimportfile'] = 'File format is invalid.';
 $string['import'] = 'Import';
 $string['coursescreated'] = 'Courses created/updated successfully';
 
@@ -57,3 +56,21 @@ $string['invalidcsvfile'] = 'File format is invalid.';
 $string['invalidencoding'] = 'Invalid encoding specified';
 
 // Helper.
+$string['thumbnailinvalidext'] = 'Thumbnail is an invalid type. Extension: {$a}.';
+$string['thumbnailinvalidtype'] = 'Thumbnail is an invalid type.';
+$string['thumbnailsamesource'] = 'Thumbnail is the same source as current thumbnail, not updated.';
+$string['thumbnaildownloaded'] = 'Thumbnail downloaded and added.';
+$string['thumbnaildownloaderror'] = 'Thumbnail could not be retrieved. {$a}.';
+
+// Importer.
+$string['invalidfileexception'] = 'File format is invalid. {$a}';
+$string['invalidimportfile'] = 'File format is invalid.';
+$string['invalidparentcategoryid'] = 'Parent category is invalid.';
+$string['invalidimportfileheaders'] = 'File headers are invalid. Not enough columns, please verify the delimiter setting.';
+$string['invalidimportfilenorecords'] = 'No records in import file.';
+$string['invalidimportrecord'] = 'Invalid Import Record.';
+$string['statuscoursecreated'] = 'Course Created.';
+$string['statuscourseupdated'] = 'Course Updated.';
+$string['statuscoursenotupdated'] = 'Course Not Updated.';
+$string['statusextcreated'] = 'External content Created.';
+$string['statusextupdated'] = 'External content Updated.';

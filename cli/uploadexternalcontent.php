@@ -107,12 +107,9 @@ $importer = new tool_uploadexternalcontent_importer($content, $options['encoding
 $importid = $importer->get_importid();
 unset($content);
 
-$error = $importer->get_error();
-if ($error) {
-    print_error('invalidimportfile', 'tool_uploadexternalcontent', '', $importer->get_error());
-} else if (count($importer->records) == 0) {
-    print_error('csvemptyfile', 'error', '', $importer->get_error());
+if ($importer->haserrors()) {
+    print_error('invalidimportfile', 'tool_uploadexternalcontent', '', implode(PHP_EOL, $importer->get_error()));
 }
 
 $importer = new tool_uploadexternalcontent_importer(null, null, null, $options['categoryid'], $importid, null);
-$importer->execute(new tool_uploadexternalcontent_tracker(tool_uploadexternalcontent_tracker::OUTPUT_PLAIN));
+$importer->execute(new tool_uploadexternalcontent_tracker(tool_uploadexternalcontent_tracker::OUTPUT_PLAIN, true));
