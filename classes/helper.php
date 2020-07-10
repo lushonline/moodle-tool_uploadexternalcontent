@@ -272,8 +272,6 @@ class tool_uploadexternalcontent_helper {
         // All data provided by the data generator.
         $externalcontent = new \stdClass();
         $externalcontent->name = $record->external_name;
-        $externalcontent->printintro = 0;
-        $externalcontent->printheading = 1;
         $externalcontent->intro = $record->external_intro;
         $externalcontent->introformat = 1; // FORMAT_HTML.
         $externalcontent->content = $record->external_content;
@@ -282,6 +280,10 @@ class tool_uploadexternalcontent_helper {
         $externalcontent->completion = 2;
         $externalcontent->completionview = 1;
         $externalcontent->completionexternally = $record->external_markcompleteexternally;
+
+        $externalcontent->printintro = $record->external_printintro;
+        $externalcontent->printheading = $record->external_printheading;
+        $externalcontent->printlastmodified = $record->external_printlastmodified;
 
         return $externalcontent;
     }
