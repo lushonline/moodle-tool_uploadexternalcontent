@@ -280,6 +280,9 @@ class tool_uploadexternalcontent_importer {
             return;
         }
 
+        // Retrieve the External Content defaults.
+        $extcontdefaults = get_config('externalcontent');
+
         $record = null;
         $records = array();
 
@@ -305,6 +308,10 @@ class tool_uploadexternalcontent_importer {
                                                     $this->get_row_data($row, $mapping['external_markcompleteexternally']),
                                                     PARAM_BOOL);
             $record->category = $category;
+
+            $record->external_printheading = $extcontdefaults->printheading;
+            $record->external_printintro = $extcontdefaults->printintro;
+            $record->external_printlastmodified = $extcontdefaults->printlastmodified;
 
             array_push($records, $record);
         }
