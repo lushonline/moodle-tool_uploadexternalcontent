@@ -86,6 +86,20 @@ class tool_uploadexternalcontent_helper {
      */
     public static function resolve_category_by_id_or_idnumber($id) {
         global $DB;
+
+        if (is_null($id)) {
+            try {
+                $gettop1categories = $DB->get_records('course_categories', null, 'id asc', '*', 0, 1);
+                if (count($gettop1categories) != 0) {
+                    $firstcategory = array_pop($gettop1categories);
+                    $id = $firstcategory->id;
+                }
+                return $id;
+            } catch (Exception $e) {
+                return null;
+            }
+        }
+
         $params = array('id' => $id);
         if (is_numeric($id)) {
             if ($DB->record_exists('course_categories', $params)) {

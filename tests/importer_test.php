@@ -57,7 +57,7 @@ class tool_uploadexternalcontent_importer_testcase extends advanced_testcase {
         $importer = new tool_uploadexternalcontent_importer($content, null, null);
         $importid = $importer->get_importid();
 
-        $importer = new tool_uploadexternalcontent_importer(null, null, null, 1, $importid, null);
+        $importer = new tool_uploadexternalcontent_importer(null, null, null, null, $importid, null);
         $importer->execute();
 
         $course = null;
