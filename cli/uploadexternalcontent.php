@@ -29,12 +29,7 @@ require_once($CFG->libdir.'/adminlib.php');
 require_once($CFG->libdir.'/phpunit/classes/util.php');
 require_once($CFG->libdir . '/clilib.php');
 
-if (method_exists('\core_course_category', 'get_default')) {
-    $defaultcategory = core_course_category::get_default()->id;
-} else {
-    require_once($CFG->libdir . '/coursecatlib.php');
-    $defaultcategory = coursecat::get_default()->id;
-}
+$pluginversion = get_config('tool_uploadexternalcontent', 'version');
 
 // Now get cli options.
 list($options, $unrecognized) = cli_get_params(array(
@@ -42,7 +37,7 @@ list($options, $unrecognized) = cli_get_params(array(
     'source' => '',
     'delimiter' => 'comma',
     'encoding' => 'UTF-8',
-    'categoryid' => $defaultcategory
+    'categoryid' => tool_uploadexternalcontent_helper::resolve_category_by_id_or_idnumber(null)
 ),
 array(
     'h' => 'help',
@@ -57,26 +52,34 @@ if ($unrecognized) {
     cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
 }
 
-$help =
-"Upload external content courses.
-
-Options:
--h, --help                 Print out this help
--s, --source               CSV file
--d, --delimiter            CSV delimiter: colon, semicolon, tab, cfg, comma
--e, --encoding             CSV file encoding: utf8, ... etc
--c, --categoryid           ID of default category
-
-
-Example:
-\$sudo -u www-data /usr/bin/php admin/tool/uploadexternalcontent/cli/uploadexternalcontent.php --source=data.csv --delimiter=comma
-";
+$help = get_string('pluginname', 'tool_uploadexternalcontent')." (".$pluginversion.")".PHP_EOL;
+$help .= PHP_EOL;
+$help .= "Options:".PHP_EOL;
+$help .= "-h, --help                 Print out this help".PHP_EOL;
+$help .= "-s, --source               CSV file".PHP_EOL;
+$help .= "-d, --delimiter            CSV delimiter: colon, semicolon, tab, cfg, comma. Default: comma".PHP_EOL;
+$help .= "-e, --encoding             CSV file encoding: UTF-8, ... Default: UTF-8".PHP_EOL;
+$help .= "-c, --categoryid           ID of default category. Default: first category on site".PHP_EOL;
+$help .= PHP_EOL;
+$help .= "Example:".PHP_EOL;
+$help .= "sudo -u www-data /usr/bin/php admin/tool/uploadexternalcontent/cli/uploadexternalcontent.php ";
+$help .= "-s=./courses.csv -d=comma -e=UTF-8 -c=1".PHP_EOL;
 
 if ($options['help']) {
     echo $help;
     die();
 }
-echo "Upload external content courses ...\n";
+
+$start = get_string('pluginname', 'tool_uploadexternalcontent')." (".$pluginversion.")".PHP_EOL;
+$start .= PHP_EOL;
+$start .= "Options Used:".PHP_EOL;
+$start .= "--source = ".$options['source'].PHP_EOL;
+$start .= "--delimiter = ".$options['delimiter'].PHP_EOL;
+$start .= "--encoding = ".$options['encoding'].PHP_EOL;
+$start .= "--categoryid = ".$options['categoryid'].PHP_EOL;
+$start .= PHP_EOL;
+
+echo $start;
 
 // File.
 if (!empty($options['source'])) {
@@ -84,16 +87,23 @@ if (!empty($options['source'])) {
 }
 
 if (!file_exists($options['source'])) {
-    echo get_string('invalidcsvfile', 'tool_uploadexternalcontent')."\n";
-    echo $help;
+    echo "Errors Reported during import:".PHP_EOL;
+    echo get_string('filenotfound', 'error')."\n";
     die();
 }
 
 // Encoding.
 $encodings = core_text::get_encodings();
 if (!isset($encodings[$options['encoding']])) {
+    echo "Errors Reported during import:".PHP_EOL;
     echo get_string('invalidencoding', 'tool_uploadexternalcontent')."\n";
-    echo $help;
+    die();
+}
+
+// Category id check.
+if (!tool_uploadexternalcontent_helper::resolve_category_by_id_or_idnumber($options['categoryid'])) {
+    echo "Errors Reported during import:".PHP_EOL;
+    echo get_string('invalidparentcategoryid', 'tool_uploadexternalcontent').PHP_EOL;
     die();
 }
 
@@ -108,7 +118,9 @@ $importid = $importer->get_importid();
 unset($content);
 
 if ($importer->haserrors()) {
-    print_error('invalidimportfile', 'tool_uploadexternalcontent', '', implode(PHP_EOL, $importer->get_error()));
+    echo "Errors Reported during import:".PHP_EOL;
+    echo implode(PHP_EOL, $importer->geterrors());
+    die();
 }
 
 $importer = new tool_uploadexternalcontent_importer(null, null, null, $options['categoryid'], $importid, null);
