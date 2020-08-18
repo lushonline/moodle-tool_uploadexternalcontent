@@ -385,20 +385,12 @@ class tool_uploadexternalcontent_helper {
         $fs = get_file_storage();
 
         $overviewfilesoptions = course_overviewfiles_options($courseid);
-        $filetypesutil = new \core_form\filetypes_util();
-        $whitelist = $filetypesutil->normalize_file_types($overviewfilesoptions['accepted_types']);
-
         $parsedurl = new moodle_url($url);
 
         $ext = pathinfo($parsedurl->get_path(), PATHINFO_EXTENSION);
         $filename = 'thumbnail.'.$ext;
 
         // Check the extension is valid.
-        if (!$filetypesutil->is_allowed_file_type($filename, $whitelist)) {
-            $response->status = get_string('thumbnailinvalidext', 'tool_uploadexternalcontent', $ext);
-            return $response;
-        }
-
         $coursecontext = \context_course::instance($courseid);
 
         // Get the file if it already exists.
