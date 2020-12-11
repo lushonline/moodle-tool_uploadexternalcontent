@@ -1,5 +1,5 @@
 # tool_uploadexternalcontent
-[![Build Status](https://travis-ci.org/lushonline/moodle-tool_uploadexternalcontent.svg?branch=master)](https://travis-ci.org/lushonline/moodle-tool_uploadexternalcontent)
+![Moodle Plugin CI](https://github.com/lushonline/moodle-tool_uploadexternalcontent/workflows/Moodle%20Plugin%20CI/badge.svg?branch=master)
 
 A tool to allow import of HTML as External content activities using a text delimited file.
 
