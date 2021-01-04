@@ -1,5 +1,8 @@
 name: Moodle Plugin CI
 on: push
+defaults:
+  run:
+    shell: bash -l {0}
 jobs:
   moodle-plugin-ci:
     env:
