@@ -120,15 +120,11 @@ jobs:
           tools: phpunit
           coverage: none
 
-      - name: Configure Use Composer Version 1
+      - name: Downgrade to Composer 1.x
         id: install-composer1
         if: ${{ matrix.moodle-versions == 'MOODLE_32_STABLE' || matrix.moodle-versions == 'MOODLE_33_STABLE' || matrix.moodle-versions == 'MOODLE_34_STABLE' }}
         run: |
-          echo "::set-output name=COMPOSER_VERSION::--1"
-
-      - name: Update Composer Version 1
-        run: |
-          composer self-update ${{ steps.install-composer1.outputs.COMPOSER_VERSION }}
+          composer self-update --1
 
       - name: Install moodle-plugin-ci
         run: |
