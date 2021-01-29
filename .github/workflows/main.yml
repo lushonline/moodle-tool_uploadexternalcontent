@@ -120,9 +120,13 @@ jobs:
         run: |
           echo "::set-output name=COMPOSER_VERSION::--2.0.8"
 
-      - name: Update Composer
+      - name: Update Composer Version 1
         run: |
           composer self-update ${{ steps.install-composer1.outputs.COMPOSER_VERSION }}
+
+      - name: Update Composer Version 2.0.8
+        run: |
+          composer self-update ${{ steps.install-composer2.outputs.COMPOSER_VERSION }}
 
       - name: Install moodle-plugin-ci
         run: |
