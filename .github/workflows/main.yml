@@ -118,7 +118,7 @@ jobs:
         id: install-composer2
         if: ${{ matrix.moodle-versions != 'MOODLE_32_STABLE' && matrix.moodle-versions != 'MOODLE_33_STABLE' && matrix.moodle-versions != 'MOODLE_34_STABLE' }}
         run: |
-          echo "::set-output name=COMPOSER_VERSION::--2.0.8"
+          echo "::set-output name=COMPOSER_VERSION::2.0.8"
 
       - name: Update Composer Version 1
         run: |
