@@ -21,7 +21,6 @@
  * @copyright 2019-2020 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die('Direct access to this script is forbidden.');
 
 /**
  * Main processing class for adding and updating single external content course.
@@ -309,9 +308,16 @@ class tool_uploadexternalcontent_importer {
                                                     PARAM_BOOL);
             $record->category = $category;
 
-            $record->external_printheading = $extcontdefaults->printheading;
-            $record->external_printintro = $extcontdefaults->printintro;
-            $record->external_printlastmodified = $extcontdefaults->printlastmodified;
+            // Set defaults.
+            if (property_exists($extcontdefaults, 'printheading')) {
+                $record->external_printheading = $extcontdefaults->printheading;
+            }
+            if (property_exists($extcontdefaults, 'printintro')) {
+                $record->external_printintro = $extcontdefaults->printintro;
+            }
+            if (property_exists($extcontdefaults, 'printlastmodifie')) {
+                $record->external_printlastmodified = $extcontdefaults->printlastmodifies;
+            }
 
             array_push($records, $record);
         }
