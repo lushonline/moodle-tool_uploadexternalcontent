@@ -23,7 +23,7 @@
  * @copyright  2019-2020 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die;
+defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 require_once($CFG->libdir . '/completionlib.php');
@@ -71,7 +71,7 @@ class tool_uploadexternalcontent_helper {
      * @return int category ID.
      */
     public static function resolve_category_by_idnumber($idnumber) {
-          global $DB;
+        global $DB;
 
         $params = array('idnumber' => $idnumber);
         $id = $DB->get_field_select('course_categories', 'id', 'idnumber = :idnumber', $params, IGNORE_MISSING);
@@ -294,9 +294,16 @@ class tool_uploadexternalcontent_helper {
         $externalcontent->completionview = 1;
         $externalcontent->completionexternally = $record->external_markcompleteexternally;
 
-        $externalcontent->printintro = $record->external_printintro;
-        $externalcontent->printheading = $record->external_printheading;
-        $externalcontent->printlastmodified = $record->external_printlastmodified;
+        // Set defaults.
+        if (property_exists($record, 'external_printheading')) {
+            $externalcontent->printheading = $record->external_printheading;
+        }
+        if (property_exists($record, 'external_printintro')) {
+            $externalcontent->printintro = $record->external_printintro;
+        }
+        if (property_exists($record, 'external_printlastmodified')) {
+            $externalcontent->printlastmodified = $record->external_printlastmodified;
+        }
 
         return $externalcontent;
     }

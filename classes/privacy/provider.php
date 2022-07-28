@@ -24,8 +24,6 @@
 
 namespace tool_uploadexternalcontent\privacy;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Privacy Subsystem for tool_uploadexternalcontent implementing null_provider.
  *
