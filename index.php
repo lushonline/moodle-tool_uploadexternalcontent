@@ -40,9 +40,9 @@ $PAGE->set_title($pagetitle);
 $PAGE->set_pagelayout('admin');
 $PAGE->set_heading($pagetitle);
 
-$importid      = optional_param('importid', '', PARAM_INT);
-$confirm       = optional_param('confirm', '0', PARAM_BOOL);
-$needsconfirm  = optional_param('needsconfirm', '0', PARAM_BOOL);
+$importid = optional_param('importid', '', PARAM_INT);
+$confirm = optional_param('confirm', '0', PARAM_BOOL);
+$needsconfirm = optional_param('needsconfirm', '0', PARAM_BOOL);
 
 $text = null;
 $encoding = null;

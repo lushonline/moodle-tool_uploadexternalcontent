@@ -352,8 +352,8 @@ class tool_uploadexternalcontent_helper {
 
         // Handle overall aggregation.
         $aggdata = array(
-            'course'        => $course->id,
-            'criteriatype'  => null,
+            'course' => $course->id,
+            'criteriatype' => null,
             'method' => COMPLETION_AGGREGATION_ALL
         );
 

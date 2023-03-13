@@ -24,9 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-
-$plugin->version   = 2023031300; // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires  = 2021051700; // Requires this Moodle version v3.11 see https://docs.moodle.org/dev/Releases.
+$plugin->version = 2023031300; // The current plugin version (Date: YYYYMMDDXX).
+$plugin->requires = 2021051700; // Requires this Moodle version v3.11 see https://docs.moodle.org/dev/Releases.
 $plugin->component = 'tool_uploadexternalcontent'; // Full name of the plugin (used for diagnostics).
 $plugin->dependencies = ['mod_externalcontent' => ANY_VERSION];
 $plugin->maturity = MATURITY_STABLE;
