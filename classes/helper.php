@@ -20,7 +20,7 @@
  * Class containing a set of helpers, based on admin\tool\uploadcourse by 2013 Frédéric Massart.
  *
  * @package    tool_uploadexternalcontent
- * @copyright  2019-2020 LushOnline
+ * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
@@ -33,7 +33,7 @@ require_once($CFG->dirroot . '/completion/criteria/completion_criteria_activity.
  * Class containing a set of helpers.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class tool_uploadexternalcontent_helper {
@@ -373,15 +373,53 @@ class tool_uploadexternalcontent_helper {
         $aggregation->save();
     }
 
+    /**
+     * Check the custom course field exists.
+     *
+     * @param string $fieldshortname The custom field shortname.
+     *
+     * @return bool
+     */
+    public static function course_customfield_exists($fieldshortname) {
+        $handler = \core_customfield\handler::get_handler('core_course', 'course');
+        $fields = $handler->get_fields();
+        $found = false;
+        foreach ($fields as $field) {
+            if ($field->get('shortname') == $fieldshortname) {
+                $found = true;
+                break;
+            }
+        }
+        return $found;
+    }
+
+
 
     /**
      * Add_course_thumbnail
      *
      * @param  object $courseid
      * @param  string $url
+     * @param  bool $downloadthumbnail
      * @return object Object containing a status string and a stored_file object or null
      */
-    public static function add_course_thumbnail($courseid, $url) {
+    public static function add_course_thumbnail($courseid, $url, $downloadthumbnail = 0) {
+
+        if ($downloadthumbnail) {
+            return self::add_course_overviewfiles_thumbnail($courseid, $url);
+        }
+
+        return self::add_course_customfield_thumbnail($courseid, $url);
+    }
+
+    /**
+     * add_course_overviewfiles_thumbnail
+     *
+     * @param  object $courseid
+     * @param  string $url
+     * @return object Object containing a status string and a stored_file object or null
+     */
+    public static function add_course_overviewfiles_thumbnail($courseid, $url) {
         global $CFG;
 
         $response = new \stdClass();
@@ -455,6 +493,49 @@ class tool_uploadexternalcontent_helper {
             $fs->delete_area_files($coursecontext->id, 'course', 'overviewfiles');
             $response->thumbnailfile = null;
             $response->status = get_string('thumbnaildownloaderror', 'tool_uploadexternalcontent', $e->getMessage());
+            return $response;
+        }
+    }
+
+    /**
+     * Add_course_customfield_thumbnail
+     *
+     * @param  object $courseid
+     * @param  string $url
+     * @return object Object containing a status string
+     */
+    public static function add_course_customfield_thumbnail($courseid, $url) {
+        $response = new \stdClass();
+        $response->status = null;
+        $response->thumbnailfile = null;
+
+        $handler = \core_customfield\handler::get_handler('core_course', 'course');
+        $context = $handler->get_instance_context($courseid);
+        $editablefields = $handler->get_editable_fields($courseid);
+        $records = \core_customfield\api::get_instance_fields_data($editablefields, $courseid);
+
+        $response->status = get_string('thumbnailcustomfielddoesnotexist', 'tool_uploadexternalcontent');
+        try {
+            foreach ($records as $d) {
+                $field = $d->get_field();
+                if ($field->get('shortname') === 'thumbnailurl') {
+                    $response->status = get_string('thumbnailsamesource', 'tool_uploadexternalcontent');
+                    // Only update if they dont match.
+                    if ($d->get($d->datafield()) !== $url) {
+                        $d->set($d->datafield(), $url);
+                        $d->set('value', $url);
+                        $d->set('contextid', $context->id);
+                        $d->set('valueformat', 0);
+                        $d->save();
+                        $response->status = get_string('thumbnailcustomfield', 'tool_uploadexternalcontent');
+                    }
+                    break;
+                }
+            }
+
+            return $response;
+        } catch (Exception $e) {
+            $response->status = get_string('thumbnailcustomfielderror', 'tool_uploadexternalcontent', $e->getMessage());
             return $response;
         }
     }

@@ -18,7 +18,7 @@
  * This file contains the form to confirm columns in import file
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -30,7 +30,7 @@ require_once($CFG->dirroot . '/course/lib.php');
  * The form to confirm columns in import file.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class tool_uploadexternalcontent_import_confirm_form extends moodleform {
@@ -75,6 +75,11 @@ class tool_uploadexternalcontent_import_confirm_form extends moodleform {
         // Default values.
         $mform->addElement('header', 'importvaluesheader', get_string('importvaluesheader', 'tool_uploadexternalcontent'));
         $mform->setExpanded('importvaluesheader', true);
+
+        $mform->addElement('selectyesno', 'downloadthumbnail', get_string('downloadthumbnail', 'tool_uploadexternalcontent'));
+        $mform->addHelpButton('downloadthumbnail', 'downloadthumbnail', 'tool_uploadexternalcontent');
+        $mform->setDefault('downloadthumbnail', 1);
+        $mform->setType('downloadthumbnail', PARAM_BOOL);
 
         if (method_exists('\core_course_category', 'make_categories_list')) {
             $displaylist = core_course_category::make_categories_list('moodle/course:create');

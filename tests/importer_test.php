@@ -19,7 +19,7 @@
  * Tests for the importer
  *
  * @package    tool_uploadexternalcontent
- * @copyright  2019-2020 LushOnline
+ * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 namespace tool_uploadexternalcontent;
@@ -34,7 +34,7 @@ require_once($CFG->libdir . '/csvlib.class.php');
  * Test for the importer
  *
  * @package    tool_uploadexternalcontent
- * @copyright  2019-2020 LushOnline
+ * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers \tool_uploadexternalcontent_importer
  */
@@ -60,7 +60,7 @@ class importer_test extends \advanced_testcase {
         $importer = new \tool_uploadexternalcontent_importer($content, null, null);
         $importid = $importer->get_importid();
 
-        $importer = new \tool_uploadexternalcontent_importer(null, null, null, null, $importid, null);
+        $importer = new \tool_uploadexternalcontent_importer(null, null, null, null, null, $importid, null);
         $importer->execute();
 
         $course = null;
@@ -110,7 +110,7 @@ class importer_test extends \advanced_testcase {
         $importer = new \tool_uploadexternalcontent_importer($content, null, null);
         $importid = $importer->get_importid();
 
-        $importer = new \tool_uploadexternalcontent_importer(null, null, null, $noneexistentid , $importid, null);
+        $importer = new \tool_uploadexternalcontent_importer(null, null, null, $noneexistentid , null, $importid, null);
         $importer->execute();
 
         $this->assertFalse($DB->record_exists('course', array('idnumber' => $idnumber)));

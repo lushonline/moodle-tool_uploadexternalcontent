@@ -18,7 +18,7 @@
  * Import a framework.
  *
  * @package    tool_uploadexternalcontent
- * @copyright  2019-2020 LushOnline
+ * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  *
  */
@@ -82,7 +82,8 @@ if ($form2data = $mform2->is_cancelled()) {
 } else if ($form2data = $mform2->get_data()) {
     $importid = $form2data->importid;
     $category = $form2data->category;
-    $importer = new tool_uploadexternalcontent_importer(null, null, null, $category, $importid, $form2data);
+    $downloadthumbnail = $form2data->downloadthumbnail;
+    $importer = new tool_uploadexternalcontent_importer(null, null, null, $category, $downloadthumbnail, $importid, $form2data);
     $processingresponse = $importer->execute(new tool_uploadexternalcontent_tracker(
         tool_uploadexternalcontent_tracker::OUTPUT_HTML, false)
     );

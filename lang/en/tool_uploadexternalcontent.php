@@ -18,7 +18,7 @@
  * Strings for component 'tool_uploadexternalcontent', language 'en'
  *
  * @package    tool_uploadexternalcontent
- * @copyright  2019-2020 LushOnline
+ * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -38,6 +38,9 @@ $string['encoding_help'] = 'Encoding of the CSV file.';
 
 $string['importvaluesheader'] = 'Import settings';
 $string['columnsheader'] = 'Columns';
+
+$string['downloadthumbnail'] = 'Download thumbnail';
+$string['downloadthumbnail_help'] = 'Download the thumbnail and add to the course overview.';
 
 // Tracker.
 $string['csvline'] = 'Line';
@@ -61,6 +64,11 @@ $string['thumbnailinvalidtype'] = 'Thumbnail is an invalid type.';
 $string['thumbnailsamesource'] = 'Thumbnail is the same source as current thumbnail, not updated.';
 $string['thumbnaildownloaded'] = 'Thumbnail downloaded and added.';
 $string['thumbnaildownloaderror'] = 'Thumbnail could not be retrieved. {$a}.';
+
+$string['thumbnailcustomfield'] = 'Thumbnail custom field added.';
+$string['thumbnailcustomfielddoesnotexist'] = 'Thumbnail custom field does not exist so skipped.';
+$string['thumbnailcustomfielderror'] = 'Thumbnail custom field could not be added. {$a}.';
+
 
 // Importer.
 $string['invalidfileexception'] = 'File format is invalid. {$a}';

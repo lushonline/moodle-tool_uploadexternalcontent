@@ -18,7 +18,7 @@
  * This file contains the procesing for the add/update of a single external content course.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -26,7 +26,7 @@
  * Main processing class for adding and updating single external content course.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class tool_uploadexternalcontent_importer {
@@ -237,11 +237,12 @@ class tool_uploadexternalcontent_importer {
      * @param string $encoding
      * @param string $delimiter
      * @param integer $category
+     * @param bool $downloadthumbnnail
      * @param integer $importid
      * @param object $mappingdata
      */
     public function __construct($text = null, $encoding = null, $delimiter = 'comma',
-                                $category = null, $importid = 0, $mappingdata = null) {
+                                $category = null, $downloadthumbnail = 0, $importid = 0, $mappingdata = null) {
         global $CFG;
         require_once($CFG->libdir . '/csvlib.class.php');
 
@@ -307,6 +308,8 @@ class tool_uploadexternalcontent_importer {
                                                     $this->get_row_data($row, $mapping['external_markcompleteexternally']),
                                                     PARAM_BOOL);
             $record->category = $category;
+
+            $record->downloadthumbnail = $downloadthumbnail;
 
             // Set defaults.
             if (property_exists($extcontdefaults, 'printheading')) {
@@ -407,7 +410,12 @@ class tool_uploadexternalcontent_importer {
 
                     if ($record->course_thumbnail != '') {
                         $response = tool_uploadexternalcontent_helper::add_course_thumbnail($mergedcourse->id,
-                                                                                            $record->course_thumbnail);
+                                                                                            $record->course_thumbnail,
+                                                                                            $record->downloadthumbnail);
+
+                        if ($response->thumbnailfile) {
+                            $mergedcourse->overviewfiles_filemanager = $response->thumbnailfile->get_itemid();
+                        }
                         $status[] = $response->status;
                     }
 
@@ -480,7 +488,8 @@ class tool_uploadexternalcontent_importer {
 
                     if ($record->course_thumbnail != '') {
                         $response = tool_uploadexternalcontent_helper::add_course_thumbnail($newcourse->id,
-                                                                                            $record->course_thumbnail);
+                                                                                            $record->course_thumbnail,
+                                                                                            $record->downloadthumbnail);
                         if ($response->thumbnailfile) {
                             $newcourse->overviewfiles_filemanager = $response->thumbnailfile->get_itemid();
                         }
