@@ -237,7 +237,7 @@ class tool_uploadexternalcontent_importer {
      * @param string $encoding
      * @param string $delimiter
      * @param integer $category
-     * @param bool $downloadthumbnnail
+     * @param bool $downloadthumbnail
      * @param integer $importid
      * @param object $mappingdata
      */
