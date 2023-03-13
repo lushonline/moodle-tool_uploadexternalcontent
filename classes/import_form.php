@@ -18,7 +18,7 @@
  * This file contains the form for selecting import file.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die('Direct access to this script is forbidden.');
@@ -28,7 +28,7 @@ require_once($CFG->libdir.'/formslib.php');
  * The form for selecting import file.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class tool_uploadexternalcontent_import_form extends moodleform {
