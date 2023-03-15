@@ -21,6 +21,7 @@
  * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+namespace tool_uploadexternalcontent;
 
 defined('MOODLE_INTERNAL') || die('Direct access to this script is forbidden.');
 require_once($CFG->libdir.'/formslib.php');
@@ -33,7 +34,7 @@ require_once($CFG->dirroot . '/course/lib.php');
  * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tool_uploadexternalcontent_import_confirm_form extends moodleform {
+class import_confirm_form extends \moodleform {
 
     /**
      * Define the form - called by parent constructor
@@ -82,9 +83,9 @@ class tool_uploadexternalcontent_import_confirm_form extends moodleform {
         $mform->setType('downloadthumbnail', PARAM_BOOL);
 
         if (method_exists('\core_course_category', 'make_categories_list')) {
-            $displaylist = core_course_category::make_categories_list('moodle/course:create');
+            $displaylist = \core_course_category::make_categories_list('moodle/course:create');
         } else {
-            $displaylist = coursecat::make_categories_list('moodle/course:create');
+            $displaylist = \coursecat::make_categories_list('moodle/course:create');
         }
 
         $mform->addElement('select', 'category', get_string('coursecategory'), $displaylist);

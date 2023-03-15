@@ -43,16 +43,14 @@ $string['downloadthumbnail'] = 'Download thumbnail';
 $string['downloadthumbnail_help'] = 'Download the thumbnail and add to the course overview.';
 
 // Tracker.
+$string['uploadexternalcontentresult'] = 'Upload results';
 $string['csvline'] = 'Line';
 $string['id'] = 'ID';
 $string['result'] = 'Result';
-$string['uploadexternalcontentresult'] = 'Upload results';
+$string['actions'] = 'Actions';
 $string['coursestotal'] = 'Courses total: {$a}';
-$string['coursescreated'] = 'Courses created: {$a}';
-$string['coursesupdated'] = 'Courses updated: {$a}';
-$string['coursesdeleted'] = 'Courses deleted: {$a}';
-$string['coursesnotupdated'] = 'Courses not updated: {$a}';
-$string['courseserrors'] = 'Courses errors: {$a}';
+$string['coursessuccess'] = 'Courses success: {$a}';
+$string['coursesfailed'] = 'Courses fail: {$a}';
 
 // CLI.
 $string['invalidcsvfile'] = 'File format is invalid.';
@@ -77,8 +75,6 @@ $string['invalidparentcategoryid'] = 'Parent category is invalid.';
 $string['invalidimportfileheaders'] = 'File headers are invalid. Not enough columns, please verify the delimiter setting.';
 $string['invalidimportfilenorecords'] = 'No records in import file.';
 $string['invalidimportrecord'] = 'Invalid Import Record.';
-$string['statuscoursecreated'] = 'Course Created.';
-$string['statuscourseupdated'] = 'Course Updated.';
-$string['statuscoursenotupdated'] = 'Course Not Updated.';
-$string['statusextcreated'] = 'External content Created.';
-$string['statusextupdated'] = 'External content Updated.';
+
+
+

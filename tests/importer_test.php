@@ -36,7 +36,7 @@ require_once($CFG->libdir . '/csvlib.class.php');
  * @package    tool_uploadexternalcontent
  * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers \tool_uploadexternalcontent_importer
+ * @covers \tool_uploadexternalcontent\importer
  */
 class importer_test extends \advanced_testcase {
 
@@ -44,7 +44,7 @@ class importer_test extends \advanced_testcase {
      * Confirms that a single course and single activity can be created
      *
      * @return void
-     * @covers \tool_uploadexternalcontent_importer
+     * @covers \tool_uploadexternalcontent\importer
      */
     public function test_create_comma() {
         global $DB;
@@ -57,10 +57,10 @@ class importer_test extends \advanced_testcase {
         $source = __DIR__.'/fixtures/onecourse.csv';
         $content = file_get_contents($source);
 
-        $importer = new \tool_uploadexternalcontent_importer($content, null, null);
+        $importer = new \tool_uploadexternalcontent\importer($content, null, null);
         $importid = $importer->get_importid();
 
-        $importer = new \tool_uploadexternalcontent_importer(null, null, null, null, null, $importid, null);
+        $importer = new \tool_uploadexternalcontent\importer(null, null, null, null, null, $importid, null);
         $importer->execute();
 
         $course = null;
@@ -89,7 +89,7 @@ class importer_test extends \advanced_testcase {
      * Confirms an error text is returned if an invalid category id is used as parent
      *
      * @return void
-     * @covers \tool_uploadexternalcontent_importer
+     * @covers \tool_uploadexternalcontent\importer
      */
     public function test_invalid_parentcategory() {
         global $DB;
@@ -107,10 +107,10 @@ class importer_test extends \advanced_testcase {
         $source = __DIR__.'/fixtures/onecourse.csv';
         $content = file_get_contents($source);
 
-        $importer = new \tool_uploadexternalcontent_importer($content, null, null);
+        $importer = new \tool_uploadexternalcontent\importer($content, null, null);
         $importid = $importer->get_importid();
 
-        $importer = new \tool_uploadexternalcontent_importer(null, null, null, $noneexistentid , null, $importid, null);
+        $importer = new \tool_uploadexternalcontent\importer(null, null, null, $noneexistentid , null, $importid, null);
         $importer->execute();
 
         $this->assertFalse($DB->record_exists('course', array('idnumber' => $idnumber)));
@@ -122,7 +122,7 @@ class importer_test extends \advanced_testcase {
      * Confirms an error text is returned if empty CSV file
      *
      * @return void
-     * @covers \tool_uploadexternalcontent_importer
+     * @covers \tool_uploadexternalcontent\importer
      */
     public function test_empty_csv() {
         $this->resetAfterTest(true);
@@ -130,7 +130,7 @@ class importer_test extends \advanced_testcase {
         $source = __DIR__.'/fixtures/empty.csv';
         $content = file_get_contents($source);
 
-        $importer = new \tool_uploadexternalcontent_importer($content, null, null);
+        $importer = new \tool_uploadexternalcontent\importer($content, null, null);
 
         $this->assertTrue($importer->haserrors(), 'Error Messages: '.implode(PHP_EOL, $importer->geterrors()));
     }
@@ -139,7 +139,7 @@ class importer_test extends \advanced_testcase {
      * Confirms an error text is returned if not enough columns in CSV file
      *
      * @return void
-     * @covers \tool_uploadexternalcontent_importer
+     * @covers \tool_uploadexternalcontent\importer
      */
     public function test_not_enough_columns() {
         $this->resetAfterTest(true);
@@ -147,7 +147,7 @@ class importer_test extends \advanced_testcase {
         $source = __DIR__.'/fixtures/notenoughcolumns.csv';
         $content = file_get_contents($source);
 
-        $importer = new \tool_uploadexternalcontent_importer($content, null, null);
+        $importer = new \tool_uploadexternalcontent\importer($content, null, null);
 
         $this->assertTrue($importer->haserrors(), 'Error Messages: '.implode(PHP_EOL, $importer->geterrors()));
     }

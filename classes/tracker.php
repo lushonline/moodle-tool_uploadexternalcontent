@@ -21,6 +21,8 @@
  * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+namespace tool_uploadexternalcontent;
+
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/weblib.php');
 
@@ -31,7 +33,7 @@ require_once($CFG->libdir . '/weblib.php');
  * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tool_uploadexternalcontent_tracker {
+class tracker {
 
     /**
      * Constant to output nothing.
@@ -51,7 +53,7 @@ class tool_uploadexternalcontent_tracker {
     /**
      * @var array columns to display.
      */
-    protected $columns = array('line', 'result', 'id', 'shortname', 'fullname', 'idnumber', 'status');
+    protected $columns = array('row', 'result', 'course id', 'fullname', 'message');
 
     /**
      * @var int row number.
@@ -78,11 +80,11 @@ class tool_uploadexternalcontent_tracker {
     public function __construct($outputmode = self::NO_OUTPUT, $passthrough = null) {
         $this->outputmode = $outputmode;
         if ($this->outputmode == self::OUTPUT_PLAIN) {
-            $this->buffer = new progress_trace_buffer(new text_progress_trace(), $passthrough);
+            $this->buffer = new \progress_trace_buffer(new \text_progress_trace(), $passthrough);
         }
 
         if ($this->outputmode == self::OUTPUT_HTML) {
-            $this->buffer = new progress_trace_buffer(new text_progress_trace(), $passthrough);
+            $this->buffer = new \progress_trace_buffer(new \text_progress_trace(), $passthrough);
         }
     }
 
@@ -113,7 +115,7 @@ class tool_uploadexternalcontent_tracker {
      * @return void
      */
     private function writehtmltablecell($message, $column) {
-        $this->buffer->output(html_writer::tag('td',
+        $this->buffer->output(\html_writer::tag('td',
             $message,
             array('class' => 'c' . $column)
         ));
@@ -127,7 +129,7 @@ class tool_uploadexternalcontent_tracker {
      * @return void
      */
     private function writehtmltableheader($message, $column) {
-        $this->buffer->output(html_writer::tag('th',
+        $this->buffer->output(\html_writer::tag('th',
             $message,
             array('class' => 'c' . $column,
             'scope' => 'col'
@@ -142,7 +144,7 @@ class tool_uploadexternalcontent_tracker {
      * @return void
      */
     private function writehtmltablerowstart($row) {
-        $this->buffer->output(html_writer::start_tag('tr',
+        $this->buffer->output(\html_writer::start_tag('tr',
                                 array('class' => 'r' . $row))
                             );
     }
@@ -153,7 +155,7 @@ class tool_uploadexternalcontent_tracker {
      * @return void
      */
     private function writehtmltablerowend() {
-        $this->buffer->output(html_writer::end_tag('tr'));
+        $this->buffer->output(\html_writer::end_tag('tr'));
     }
 
     /**
@@ -162,7 +164,7 @@ class tool_uploadexternalcontent_tracker {
      * @return void
      */
     private function writehtmlliststart() {
-        $this->buffer->output(html_writer::start_tag('ul'));
+        $this->buffer->output(\html_writer::start_tag('ul'));
     }
 
     /**
@@ -172,7 +174,7 @@ class tool_uploadexternalcontent_tracker {
      * @return void
      */
     private function writehtmllistitem($message) {
-        $this->buffer->output(html_writer::tag('li', $message));
+        $this->buffer->output(\html_writer::tag('li', $message));
     }
 
     /**
@@ -181,7 +183,7 @@ class tool_uploadexternalcontent_tracker {
      * @return void
      */
     private function writehtmllistend() {
-        $this->buffer->output(html_writer::end_tag('ul'));
+        $this->buffer->output(\html_writer::end_tag('ul'));
     }
 
     /**
@@ -191,7 +193,7 @@ class tool_uploadexternalcontent_tracker {
      * @return void
      */
     private function writehtmltablestart($summary = null) {
-        $this->buffer->output(html_writer::start_tag('table',
+        $this->buffer->output(\html_writer::start_tag('table',
         array('class' => 'generaltable boxaligncenter flexible-wrap',
         'summary' => $summary)));
     }
@@ -202,35 +204,34 @@ class tool_uploadexternalcontent_tracker {
      * @return void
      */
     private function writehtmltableend() {
-        $this->buffer->output(html_writer::end_tag('table'));
+        $this->buffer->output(\html_writer::end_tag('table'));
     }
 
     /**
      * Output one more line.
      *
-     * @param int $line line number.
+     * @param int $row The row number from the CSV, header is row 0
      * @param bool $outcome success or not?
-     * @param array $status array of statuses.
-     * @param object $data extra data to display.
+     * @param int $courseid The course id
+     * @param string $coursefullname The course fullname
+     * @param string $message extra data to display.
      * @return void
      */
-    public function output($line, $outcome, $status, $data) {
+    public function output($row, $outcome, $courseid, $coursefullname, $actions) {
         if ($this->outputmode == self::NO_OUTPUT) {
             return;
         }
 
         $message = array(
-            $line,
+            $row,
             self::getoutcomeindicator($outcome),
-            isset($data->id) ? $data->id : '',
-            isset($data->shortname) ? $data->shortname : '',
-            isset($data->fullname) ? $data->fullname : '',
-            isset($data->idnumber) ? $data->idnumber : ''
+            isset($courseid) ? $courseid : '',
+            isset($coursefullname) ? $coursefullname : '',
+            isset($actions) ? $actions : '',
         );
 
         if ($this->outputmode == self::OUTPUT_PLAIN) {
             $this->buffer->output(implode("\t", $message));
-            $this->buffer->output(implode("\t  ", $status));
         }
 
         if ($this->outputmode == self::OUTPUT_HTML) {
@@ -242,8 +243,6 @@ class tool_uploadexternalcontent_tracker {
             $this->writehtmltablecell($message[2], $ci++);
             $this->writehtmltablecell($message[3], $ci++);
             $this->writehtmltablecell($message[4], $ci++);
-            $this->writehtmltablecell($message[5], $ci++);
-            $this->writehtmltablecell(implode(html_writer::empty_tag('br'), $status), $ci++);
             $this->writehtmltablerowend();
         }
     }
@@ -272,10 +271,8 @@ class tool_uploadexternalcontent_tracker {
             $this->writehtmltableheader(get_string('csvline', 'tool_uploadexternalcontent'), $ci++);
             $this->writehtmltableheader(get_string('result', 'tool_uploadexternalcontent'), $ci++);
             $this->writehtmltableheader(get_string('id', 'tool_uploadexternalcontent'), $ci++);
-            $this->writehtmltableheader(get_string('shortname'), $ci++);
             $this->writehtmltableheader(get_string('fullname'), $ci++);
-            $this->writehtmltableheader(get_string('idnumber'), $ci++);
-            $this->writehtmltableheader(get_string('status'), $ci++);
+            $this->writehtmltableheader(get_string('actions', 'tool_uploadexternalcontent'), $ci++);
             $this->writehtmltablerowend();
         }
     }
@@ -299,25 +296,19 @@ class tool_uploadexternalcontent_tracker {
      * Output the results.
      *
      * @param int $total total courses.
-     * @param int $created count of courses created.
-     * @param int $updated count of courses updated.
-     * @param int $deleted count of courses deleted.
-     * @param int $nochange count of courses unchanged.
-     * @param int $errors count of errors.
+     * @param int $success count of courses created or updated successfully.
+     * @param int $failed count of courses created or updated that failed.
      * @return void
      */
-    public function results($total, $created, $updated, $deleted, $nochange, $errors) {
+    public function results($total, $success, $failed) {
         if ($this->outputmode == self::NO_OUTPUT) {
             return;
         }
 
         $message = array(
             get_string('coursestotal', 'tool_uploadexternalcontent', $total),
-            get_string('coursescreated', 'tool_uploadexternalcontent', $created),
-            get_string('coursesupdated', 'tool_uploadexternalcontent', $updated),
-            get_string('coursesdeleted', 'tool_uploadexternalcontent', $deleted),
-            get_string('coursesnotupdated', 'tool_uploadexternalcontent', $nochange),
-            get_string('courseserrors', 'tool_uploadexternalcontent', $errors)
+            get_string('coursessuccess', 'tool_uploadexternalcontent', $success),
+            get_string('coursesfailed', 'tool_uploadexternalcontent', $failed),
         );
 
         if ($this->outputmode == self::OUTPUT_PLAIN) {

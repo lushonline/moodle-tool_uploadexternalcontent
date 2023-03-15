@@ -22,6 +22,11 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+ namespace tool_uploadexternalcontent;
+
+ use \tool_uploadexternalcontent\helper;
+ use \tool_uploadexternalcontent\tracker;
+
 define('CLI_SCRIPT', true);
 
 require_once(__DIR__ . '/../../../../config.php');
@@ -37,7 +42,7 @@ list($options, $unrecognized) = cli_get_params(array(
     'source' => '',
     'delimiter' => 'comma',
     'encoding' => 'UTF-8',
-    'categoryid' => tool_uploadexternalcontent_helper::resolve_category_by_id_or_idnumber(null),
+    'categoryid' => \tool_uploadexternalcontent\helper::resolve_category_by_id_or_idnumber(null),
     'downloadthumbnail' => 1,
 ),
 array(
@@ -105,7 +110,7 @@ if (!isset($encodings[$options['encoding']])) {
 }
 
 // Category id check.
-if (!tool_uploadexternalcontent_helper::resolve_category_by_id_or_idnumber($options['categoryid'])) {
+if (!\tool_uploadexternalcontent\helper::resolve_category_by_id_or_idnumber($options['categoryid'])) {
     echo "Errors Reported during import:".PHP_EOL;
     echo get_string('invalidparentcategoryid', 'tool_uploadexternalcontent').PHP_EOL;
     die();
@@ -116,7 +121,7 @@ cron_setup_user();
 
 // Let's get started!
 $content = file_get_contents($options['source']);
-$importer = new tool_uploadexternalcontent_importer($content, $options['encoding'], $options['delimiter']);
+$importer = new \tool_uploadexternalcontent\importer($content, $options['encoding'], $options['delimiter']);
 
 $importid = $importer->get_importid();
 unset($content);
@@ -127,6 +132,6 @@ if ($importer->haserrors()) {
     die();
 }
 
-$importer = new tool_uploadexternalcontent_importer(null, null, null, $options['categoryid'],
+$importer = new \tool_uploadexternalcontent\importer(null, null, null, $options['categoryid'],
                                                     $options['downloadthumbnail'], $importid, null);
-$importer->execute(new tool_uploadexternalcontent_tracker(tool_uploadexternalcontent_tracker::OUTPUT_PLAIN, true));
+$importer->execute(new \tool_uploadexternalcontent\tracker(\tool_uploadexternalcontent\tracker::OUTPUT_PLAIN, true));
