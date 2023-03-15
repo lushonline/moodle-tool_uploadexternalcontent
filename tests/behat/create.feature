@@ -52,7 +52,6 @@ Feature: An admin can create a single external content activity course using a t
     And I am on site homepage
     And I should see "C1b49aa30-e719-11e6-9835-f723b46a2999 Full Name"
 
-
   @javascript
   Scenario: Failure to create course from file as required field course_idnumber missing
     When I log in as "admin"
