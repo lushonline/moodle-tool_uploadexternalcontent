@@ -347,7 +347,7 @@ class importer {
      * @return void
      */
     public function execute($tracker = null) {
-        global $DB, $CFG;
+        global $CFG;
 
         require_once($CFG->dirroot . '/course/lib.php');
         require_once($CFG->libdir . '/phpunit/classes/util.php');
@@ -363,8 +363,6 @@ class importer {
         }
         $tracker->start();
 
-        $generator = \phpunit_util::get_data_generator();
-
         $total = $success = $failed = 0;
 
         // We will most certainly need extra time and memory to process big files.
@@ -373,7 +371,6 @@ class importer {
 
         // Now actually do the work.
         foreach ($this->importedrows as $importedrow) {
-            $status = array();
             $this->linenb += 1;
             $total += 1;
 
