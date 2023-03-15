@@ -148,12 +148,12 @@ class helper {
      */
     private static function get_tags($row, $tagdelimiter="|") {
         $tagsarray = array();
-        $tagsarry = explode($tagdelimiter, $row->course_tags);
+        $tagsarray = explode($tagdelimiter, $row->course_tags);
 
         // Format for Moodle.
-        $tagsarry = array_map('self::format_moodle_tags', $tagsarry);
+        $tagsarray = array_map('self::format_moodle_tags', $tagsarray);
         // Normalize the tags.
-        return \core_tag_tag::normalize($tagsarry, false);
+        return \core_tag_tag::normalize($tagsarray, false);
     }
 
 
@@ -247,8 +247,6 @@ class helper {
      * @return object Processing information for the row
      */
     public static function import_row($row, $parentcategory = null, $thumbnail = true) {
-        global $DB;
-
         $result = new \stdClass();
         $result->success = false;
         $result->courseid = null;
