@@ -102,7 +102,7 @@ if (!file_exists($options['source'])) {
 }
 
 // Encoding.
-$encodings = core_text::get_encodings();
+$encodings = \core_text::get_encodings();
 if (!isset($encodings[$options['encoding']])) {
     echo "Errors Reported during import:".PHP_EOL;
     echo get_string('invalidencoding', 'tool_uploadexternalcontent')."\n";
