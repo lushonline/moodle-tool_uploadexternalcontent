@@ -16,7 +16,7 @@ and optional also a completion imported from an external source if EXTERNAL_MARK
 ## Installation
 
 ---
-1. Install the External content activity module:
+1. Install the External content activity module v2023031400 or later:
 
    ```sh
    git clone https://github.com/lushonline/moodle-mod_externalcontent.git mod/externalcontent

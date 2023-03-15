@@ -12,7 +12,7 @@ Feature: An admin can create a single external content activity course using a t
     And I select "comma" from the "CSV delimiter" singleselect
     And I press "Import"
     And I press "Confirm"
-    And I should see "Courses created: 1"
+    And I should see "Courses success: 1"
     And I am on site homepage
     And I should see "C1b49aa30-e719-11e6-9835-f723b46a2688 Full Name"
 
@@ -24,7 +24,7 @@ Feature: An admin can create a single external content activity course using a t
     And I select "colon" from the "CSV delimiter" singleselect
     And I press "Import"
     And I press "Confirm"
-    And I should see "Courses created: 1"
+    And I should see "Courses success: 1"
     And I am on site homepage
     And I should see "C1b49aa30-e719-11e6-9835-f723b46a2699 Full Name"
 
@@ -36,7 +36,7 @@ Feature: An admin can create a single external content activity course using a t
     And I select "semicolon" from the "CSV delimiter" singleselect
     And I press "Import"
     And I press "Confirm"
-    And I should see "Courses created: 1"
+    And I should see "Courses success: 1"
     And I am on site homepage
     And I should see "C1b49aa30-e719-11e6-9835-f723b46a2689 Full Name"
 
@@ -48,6 +48,16 @@ Feature: An admin can create a single external content activity course using a t
     And I select "tab" from the "CSV delimiter" singleselect
     And I press "Import"
     And I press "Confirm"
-    And I should see "Courses created: 1"
+    And I should see "Courses success: 1"
     And I am on site homepage
     And I should see "C1b49aa30-e719-11e6-9835-f723b46a2999 Full Name"
+
+  @javascript
+  Scenario: Failure to create course from file as required field course_idnumber missing
+    When I log in as "admin"
+    And I navigate to "Courses > Upload external content courses" in site administration
+    And I upload "admin/tool/uploadexternalcontent/tests/fixtures/missingrequired.csv" file to "CSV file" filemanager
+    And I select "comma" from the "CSV delimiter" singleselect
+    And I press "Import"
+    And I press "Confirm"
+    And I should see "Courses fail: 1"

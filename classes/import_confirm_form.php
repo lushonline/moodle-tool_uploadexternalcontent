@@ -18,9 +18,10 @@
  * This file contains the form to confirm columns in import file
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+namespace tool_uploadexternalcontent;
 
 defined('MOODLE_INTERNAL') || die('Direct access to this script is forbidden.');
 require_once($CFG->libdir.'/formslib.php');
@@ -30,10 +31,10 @@ require_once($CFG->dirroot . '/course/lib.php');
  * The form to confirm columns in import file.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tool_uploadexternalcontent_import_confirm_form extends moodleform {
+class import_confirm_form extends \moodleform {
 
     /**
      * Define the form - called by parent constructor
@@ -76,10 +77,15 @@ class tool_uploadexternalcontent_import_confirm_form extends moodleform {
         $mform->addElement('header', 'importvaluesheader', get_string('importvaluesheader', 'tool_uploadexternalcontent'));
         $mform->setExpanded('importvaluesheader', true);
 
+        $mform->addElement('selectyesno', 'downloadthumbnail', get_string('downloadthumbnail', 'tool_uploadexternalcontent'));
+        $mform->addHelpButton('downloadthumbnail', 'downloadthumbnail', 'tool_uploadexternalcontent');
+        $mform->setDefault('downloadthumbnail', 1);
+        $mform->setType('downloadthumbnail', PARAM_BOOL);
+
         if (method_exists('\core_course_category', 'make_categories_list')) {
-            $displaylist = core_course_category::make_categories_list('moodle/course:create');
+            $displaylist = \core_course_category::make_categories_list('moodle/course:create');
         } else {
-            $displaylist = coursecat::make_categories_list('moodle/course:create');
+            $displaylist = \coursecat::make_categories_list('moodle/course:create');
         }
 
         $mform->addElement('select', 'category', get_string('coursecategory'), $displaylist);

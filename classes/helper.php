@@ -15,53 +15,37 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Links and settings
- *
  * Class containing a set of helpers, based on admin\tool\uploadcourse by 2013 Frédéric Massart.
  *
  * @package    tool_uploadexternalcontent
- * @copyright  2019-2020 LushOnline
+ * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
+namespace tool_uploadexternalcontent;
 
-global $CFG;
-require_once($CFG->libdir . '/completionlib.php');
-require_once($CFG->dirroot . '/completion/criteria/completion_criteria_activity.php');
+use mod_externalcontent\instance;
+use mod_externalcontent\importableinstance;
+use mod_externalcontent\importrecord;
 
 /**
  * Class containing a set of helpers.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tool_uploadexternalcontent_helper {
+class helper {
 
     /**
-     * Validate we have the minimum info to create/update course
+     * format_moodle_tags to Moodle standard
+     * Max length of 50 and trimmed.
      *
-     * @param object $record The record we imported
-     * @return bool true if validated
+     * @param  string $tag
+     * @return string
      */
-    public static function validate_import_record($record) {
-        // As a minimum we need.
-        // course idnumber.
-        // course shortname.
-        // course longname.
-        // external name.
-        // external intro.
-        // external content.
-
-        $isvalid = true;
-        $isvalid = $isvalid && !empty($record->course_idnumber);
-        $isvalid = $isvalid && !empty($record->course_shortname);
-        $isvalid = $isvalid && !empty($record->course_fullname);
-        $isvalid = $isvalid && !empty($record->external_name);
-        $isvalid = $isvalid && !empty($record->external_intro);
-        $isvalid = $isvalid && !empty($record->external_content);
-
-        return $isvalid;
+    private static function format_moodle_tags($tag) {
+        $result = substr($tag, 0, 50);
+        return trim($result);
     }
 
     /**
@@ -90,11 +74,11 @@ class tool_uploadexternalcontent_helper {
         // Handle null id by selecting the first non zero category id.
         if (is_null($id)) {
             if (method_exists('\core_course_category', 'create')) {
-                $id = core_course_category::get_default()->id;
+                $id = \core_course_category::get_default()->id;
                 return $id;
             } else {
                 require_once($CFG->libdir . '/coursecatlib.php');
-                $id = coursecat::get_default()->id;
+                $id = \coursecat::get_default()->id;
                 return $id;
             }
             return null;
@@ -117,30 +101,35 @@ class tool_uploadexternalcontent_helper {
         return null;
     }
 
-    /**
-     * Return the category id, creating the category if necessary from the import record.
-     *
-     * @param object $record Validated Imported Record
-     * @return int The category id
-     */
-    public static function get_or_create_category_from_import_record($record) {
-        global $CFG;
-        $categoryid = $record->category;
 
-        if (!empty($record->course_categoryidnumber)) {
-            if (!$categoryid = self::resolve_category_by_idnumber($record->course_categoryidnumber)) {
-                if (!empty($record->course_categoryname)) {
+    /**
+     * Return the category id, creating the category if necessary.
+     *
+     * @param int $parentid Parent id
+     * @param string $categoryname The category name
+     * @param string $categoryidnumber The category idnumber
+     * @return int The category id, or $parentid if empty
+     */
+    public static function get_or_create_category(int $parentid,
+                                                  ?string $categoryname = null,
+                                                  ?string $categoryidnumber = null): int {
+        global $CFG;
+        $categoryid = $parentid;
+
+        if (!empty($categoryidnumber)) {
+            if (!$categoryid = self::resolve_category_by_idnumber($categoryidnumber)) {
+                if (!empty($categoryname)) {
                     // Category not found and we have a name so we need to create.
                     $category = new \stdClass();
-                    $category->parent = $record->category;
-                    $category->name = $record->course_categoryname;
-                    $category->idnumber = $record->course_categoryidnumber;
+                    $category->parent = $parentid;
+                    $category->name = $categoryname;
+                    $category->idnumber = $categoryidnumber;
 
                     if (method_exists('\core_course_category', 'create')) {
-                        $createdcategory = core_course_category::create($category);
+                        $createdcategory = \core_course_category::create($category);
                     } else {
                         require_once($CFG->libdir . '/coursecatlib.php');
-                        $createdcategory = coursecat::create($category);
+                        $createdcategory = \coursecat::create($category);
                     }
                     $categoryid = $createdcategory->id;
                 }
@@ -150,312 +139,136 @@ class tool_uploadexternalcontent_helper {
     }
 
     /**
-     * Retrieve a course by its idnumber.
+     * Convert the row tags to a delimited string of tags.
+     * Tags can be no longer than 50 characters in Moodle
      *
-     * @param string $courseidnumber course idnumber
-     * @return object course or null
+     * @param object $row The row we imported from the csv
+     * @param string $tagdelimiter The value to use to split the delimited course_tags string we imported
+     * @return string The row converted to a pipe delimited list of tags for External Content
      */
-    public static function get_course_by_idnumber($courseidnumber) {
-        global $DB;
+    private static function get_tags($row, $tagdelimiter="|") {
+        $tagsarray = array();
+        $tagsarray = explode($tagdelimiter, $row->course_tags);
 
-        $params = array('idnumber' => $courseidnumber);
-        if ($course = $DB->get_record('course', $params)) {
-            $tags = core_tag_tag::get_item_tags_array('core', 'course', $course->id,
-                                        core_tag_tag::BOTH_STANDARD_AND_NOT, 0, false);
-            $course->tags = array();
-            foreach ($tags as $value) {
-                array_push($course->tags, $value);
-            }
-        }
-        return $course;
+        // Format for Moodle.
+        $tagsarray = array_map('self::format_moodle_tags', $tagsarray);
+        // Normalize the tags.
+        return \core_tag_tag::normalize($tagsarray, false);
     }
 
-    /**
-     * Create a course from the import record.
-     *
-     * @param object $record Validated Imported Record
-     * @param string $tagdelimiter The value to use to split the delimited $record->course_tags string
-     * @return object course or null
-     */
-    public static function create_course_from_imported($record, $tagdelimiter="|") {
-        $course = new \stdClass();
-        $course->idnumber = $record->course_idnumber;
-        $course->shortname = $record->course_shortname;
-        $course->fullname = $record->course_fullname;
-        $course->summary = $record->course_summary;
-        $course->summaryformat = 1; // FORMAT_HTML.
-        $course->visible = $record->course_visible;
-
-        $course->tags = array();
-        // Split the tag string into an array.
-        if (!empty($record->course_tags)) {
-            $course->tags = explode($tagdelimiter, $record->course_tags);
-        }
-
-        // Fixed default values.
-        $course->format = "singleactivity";
-        $course->numsections = 0;
-        $course->newsitems = 0;
-        $course->showgrades = 0;
-        $course->showreports = 0;
-        $course->startdate = time();
-        $course->activitytype = "externalcontent";
-
-        $course->category = self::get_or_create_category_from_import_record($record);
-
-        // Add completion flags.
-        $course->enablecompletion = 1;
-
-        return $course;
-    }
 
     /**
-     * Merge changes from $imported course into $existing course
+     * sanitizeUrl
      *
-     * @param object $existing Course Record for existing course
-     * @param object $imported  Course Record for imported course
-     * @return object course or FALSE if no changes
-     */
-    public static function update_course_with_imported($existing, $imported) {
-        // Sort the tags arrays.
-        sort($existing->tags);
-        sort($imported->tags);
-
-        $result = clone $existing;
-        $result->fullname = $imported->fullname;
-        $result->shortname = $imported->shortname;
-        $result->idnumber = $imported->idnumber;
-        $result->visible = $imported->visible;
-        $result->tags = $imported->tags;
-        $result->category = $imported->category;
-
-        // We need to apply Moodle FORMAT_HTML conversion as this is how summary would have been stored.
-        if ($existing->summary !== format_text($imported->summary, FORMAT_HTML, array('filter' => false))) {
-            $result->summary = $imported->summary;
-        }
-
-        if ($result != $existing) {
-            return $result;
-        }
-        return false;
-    }
-
-    /**
-     * Retrieve a externalcontent by its name.
-     *
-     * @param string $name externalcontent name
-     * @param string $courseid course identifier
-     * @return object externalcontent.
-     */
-    public static function get_externalcontent_by_name($name, $courseid) {
-        global $DB;
-
-        $params = array('name' => $name, 'course' => $courseid);
-        return $DB->get_record('externalcontent', $params);
-    }
-
-    /**
-     * Retrieve a externalcontent by its idnumber.
-     *
-     * @param string $idnumber externalcontent name
-     * @param string $courseid course identifier
-     * @return object externalcontent.
-     */
-    public static function get_externalcontent_by_idnumber($idnumber, $courseid) {
-        global $DB;
-
-        $params = array('idnumber' => $idnumber, 'course' => $courseid);
-        $cm = $DB->get_record('course_modules', $params);
-
-        if (!$cm) {
-            return null;
-        }
-
-        $params = array('id' => $cm->instance, 'course' => $courseid);
-        return $DB->get_record('externalcontent', $params);
-    }
-
-    /**
-     * Create a externalcontent from the import record.
-     *
-     * @param object $record Validated Imported Record
-     * @return object course or null
-     */
-    public static function create_externalcontent_from_imported($record) {
-        // All data provided by the data generator.
-        $externalcontent = new \stdClass();
-        $externalcontent->name = $record->external_name;
-        $externalcontent->intro = $record->external_intro;
-        $externalcontent->introformat = 1; // FORMAT_HTML.
-        $externalcontent->content = $record->external_content;
-        $externalcontent->contentformat = 1; // FORMAT_HTML.
-
-        $externalcontent->completion = 2;
-        $externalcontent->completionview = 1;
-        $externalcontent->completionexternally = $record->external_markcompleteexternally;
-
-        // Set defaults.
-        if (property_exists($record, 'external_printheading')) {
-            $externalcontent->printheading = $record->external_printheading;
-        }
-        if (property_exists($record, 'external_printintro')) {
-            $externalcontent->printintro = $record->external_printintro;
-        }
-        if (property_exists($record, 'external_printlastmodified')) {
-            $externalcontent->printlastmodified = $record->external_printlastmodified;
-        }
-
-        return $externalcontent;
-    }
-
-    /**
-     * Merge changes from $imported into $existing
-     *
-     * @param object $existing Page Record for existing page
-     * @param object $imported  page Record for imported page
-     * @return object page or FALSE if no changes
-     */
-    public static function update_externalcontent_with_imported($existing, $imported) {
-        $result = clone $existing;
-
-        $result->name = $imported->name;
-        $result->intro = $imported->intro;
-        $result->content = $imported->content;
-        $result->completionexternally = clean_param($imported->completionexternally, PARAM_BOOL);
-
-        if ($result != $existing) {
-            return $result;
-        }
-        return false;
-    }
-
-    /**
-     * Update the course completion criteria to use the Activity Completion
-     *
-     * @param object $course Course Object
-     * @param object $cm Course Module Object for the Single Page
+     * @param  mixed $url
      * @return void
      */
-    public static function update_course_completion_criteria($course, $cm) {
-        $criterion = new completion_criteria_activity();
+    private static function sanitizeurl($url) {
+        $parts = parse_url($url);
 
-        $params = array('id' => $course->id, 'criteria_activity' => array($cm->id => 1));
-        if ($criterion->fetch($params)) {
-            return;
+        // Optional but we only sanitize URLs with scheme and host defined.
+        if ($parts === false || empty($parts["scheme"]) || empty($parts["host"])) {
+            return $url;
         }
 
-        // Criteria for course.
-        $criteriadata = new \stdClass();
-        $criteriadata->id = $course->id;
-        $criteriadata->criteria_activity = array($cm->id => 1);
-        $criterion->update_config($criteriadata);
+        $sanitizedpath = null;
+        if (!empty($parts["path"])) {
+            $pathparts = explode("/", $parts["path"]);
+            foreach ($pathparts as $pathpart) {
+                if (empty($pathpart)) {
+                    continue;
+                }
+                // The Path part might already be urlencoded.
+                $sanitizedpath .= "/" . rawurlencode(rawurldecode($pathpart));
+            }
+        }
 
-        // Handle overall aggregation.
-        $aggdata = array(
-            'course'        => $course->id,
-            'criteriatype'  => null,
-            'method' => COMPLETION_AGGREGATION_ALL
-        );
+        // Build the url.
+        $targeturl = $parts["scheme"] . "://" .
+            ((!empty($parts["user"]) && !empty($parts["pass"])) ? $parts["user"] . ":" . $parts["pass"] . "@" : "") .
+            $parts["host"] .
+            (!empty($parts["port"]) ? ":" . $parts["port"] : "") .
+            (!empty($sanitizedpath) ? $sanitizedpath : "") .
+            (!empty($parts["query"]) ? "?" . $parts["query"] : "") .
+            (!empty($parts["fragment"]) ? "#" . $parts["fragment"] : "");
 
-        $aggregation = new completion_aggregation($aggdata);
-        $aggregation->save();
+        return $targeturl;
+    }
 
-        $aggdata['criteriatype'] = COMPLETION_CRITERIA_TYPE_ACTIVITY;
-        $aggregation = new completion_aggregation($aggdata);
-        $aggregation->save();
+    /**
+     * Convert the row to an External Content importrecord.
+     *
+     * @param object $row The row we imported from the csv
+     * @param string|int $parentcategory The parentcategory name or id
+     * @param bool $thumbnail If true, then the thumbnail for the course will be processed.
+     * @return mod_externalcontent\importrecord|null The row converted to an importrecord, or null if not valid
+     */
+    public static function row_to_importrecord($row, $parentcategory = null, $thumbnail = true) : ?importrecord {
 
-        $aggdata['criteriatype'] = COMPLETION_CRITERIA_TYPE_COURSE;
-        $aggregation = new completion_aggregation($aggdata);
-        $aggregation->save();
+        // Create/Retrieve categoryid.
+        $parentcategoryid = self::resolve_category_by_id_or_idnumber($parentcategory);
+        $categoryid = self::get_or_create_category($parentcategoryid,
+                                                   $row->course_categoryname,
+                                                   $row->course_categoryidnumber);
+        // Create courseimport class.
+        $courseimport = new \stdClass();
+        $courseimport->idnumber = $row->course_idnumber;
+        $courseimport->shortname = $row->course_shortname;
+        $courseimport->fullname = $row->course_fullname;
+        $courseimport->summary = $row->course_summary;
+        $courseimport->tags = self::get_tags($row);
+        $courseimport->visible = $row->course_visible;
+        $courseimport->thumbnail = self::sanitizeurl($row->course_thumbnail);
+        $courseimport->category = $categoryid;
 
-        $aggdata['criteriatype'] = COMPLETION_CRITERIA_TYPE_ROLE;
-        $aggregation = new completion_aggregation($aggdata);
-        $aggregation->save();
+        // Create moduleimport class.
+        $moduleimport = new \stdClass();
+        $moduleimport->name = $row->external_name;
+        $moduleimport->intro = $row->external_intro;
+        $moduleimport->content = $row->external_content;
+        $moduleimport->completionexternally = $row->external_markcompleteexternally;
+
+        // Create options class.
+        $options = new \stdClass();
+        $options->downloadthumbnail = $thumbnail;
+
+        // Get our importrecord.
+        $importrecord = new importrecord($courseimport, $moduleimport, $options);
+        return $importrecord->validate() ? $importrecord : null;
     }
 
 
     /**
-     * Add_course_thumbnail
+     * Import the row of data, creating or updating as needed.
      *
-     * @param  object $courseid
-     * @param  string $url
-     * @return object Object containing a status string and a stored_file object or null
+     * @param object $row The row we imported from the csv
+     * @param string $parentcategory The parentcategory name or id
+     * @param bool $thumbnail If true, then the thumbnail for the course will be processed.
+     * @return object Processing information for the row
      */
-    public static function add_course_thumbnail($courseid, $url) {
-        global $CFG;
+    public static function import_row($row, $parentcategory = null, $thumbnail = true) {
+        $result = new \stdClass();
+        $result->success = false;
+        $result->courseid = null;
+        $result->coursefullname = null;
+        $result->moduleid = null;
+        $result->message = null;
+        $result->importrecord = null;
 
-        $response = new \stdClass();
-        $response->status = null;
-        $response->thumbnailfile = null;
+        if ($importrecord = self::row_to_importrecord($row, $parentcategory, $thumbnail)) {
+            $instance = importableinstance::get_from_importrecord($importrecord);
+            $result->success = true;
+            $result->courseid = $instance->get_course_id();
+            $result->coursefullname = $instance->get_course_var('fullname');
+            $result->moduleid = $instance->get_module_id();
+            $result->message = implode(", ", $instance->get_messages());
+            $result->importrecord = $importrecord;
+        } else {
+            $result->success = false;
+            $result->message = get_string('invalidimportrecord', 'tool_uploadexternalcontent');
 
-        require_once($CFG->libdir . '/filelib.php');
-        $fs = get_file_storage();
+        };
 
-        $overviewfilesoptions = course_overviewfiles_options($courseid);
-        $filetypesutil = new \core_form\filetypes_util();
-        $whitelist = $filetypesutil->normalize_file_types($overviewfilesoptions['accepted_types']);
-
-        $parsedurl = new moodle_url($url);
-
-        $ext = pathinfo($parsedurl->get_path(), PATHINFO_EXTENSION);
-        $filename = 'thumbnail.'.$ext;
-
-        // Check the extension is valid.
-        if (!$filetypesutil->is_allowed_file_type($filename, $whitelist)) {
-            $response->status = get_string('thumbnailinvalidext', 'tool_uploadexternalcontent', $ext);
-            return $response;
-        }
-
-        $coursecontext = \context_course::instance($courseid);
-
-        // Get the file if it already exists.
-        $response->thumbnailfile = $fs->get_file($coursecontext->id, 'course', 'overviewfiles', 0, '/', $filename);
-
-        if ($response->thumbnailfile) {
-            // Check the file is from same source as url.
-            $source = $response->thumbnailfile->get_source();
-            if ($source == $url) {
-                // It is the same so return this file.
-                $response->status = get_string('thumbnailsamesource', 'tool_uploadexternalcontent');
-                return $response;
-            } else {
-                // Delete files and continue with download.
-                $fs->delete_area_files($coursecontext->id, 'course', 'overviewfiles');
-                $response->thumbnailfile = null;
-            }
-        }
-
-        $thumbnailfilerecord = array('contextid' => $coursecontext->id,
-            'component' => 'course',
-            'filearea' => 'overviewfiles',
-            'itemid' => '0',
-            'filepath' => '/',
-            'filename' => $filename,
-        );
-
-        $urlparams = array(
-            'calctimeout' => false,
-            'timeout' => 5,
-            'skipcertverify' => true,
-            'connecttimeout' => 5,
-        );
-
-        try {
-            $response->thumbnailfile = $fs->create_file_from_url($thumbnailfilerecord, $url, $urlparams);
-            // Check if Moodle recognises as a valid image file.
-            if (!$response->thumbnailfile->is_valid_image()) {
-                $fs->delete_area_files($coursecontext->id, 'course', 'overviewfiles');
-                $response->thumbnailfile = null;
-                $response->status = get_string('thumbnailinvalidtype', 'tool_uploadexternalcontent');
-            } else {
-                $response->status = get_string('thumbnaildownloaded', 'tool_uploadexternalcontent');
-            }
-            return $response;
-        } catch (\file_exception $e) {
-            $fs->delete_area_files($coursecontext->id, 'course', 'overviewfiles');
-            $response->thumbnailfile = null;
-            $response->status = get_string('thumbnaildownloaderror', 'tool_uploadexternalcontent', $e->getMessage());
-            return $response;
-        }
+        return $result;
     }
 }

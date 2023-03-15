@@ -18,7 +18,7 @@
  * Privacy Subsystem implementation for tool_uploadexternalcontent.
  *
  * @package    tool_uploadexternalcontent
- * @copyright  2019-2020 LushOnline
+ * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -27,7 +27,7 @@ namespace tool_uploadexternalcontent\privacy;
 /**
  * Privacy Subsystem for tool_uploadexternalcontent implementing null_provider.
  *
- * @copyright  2019-2020 LushOnline
+ * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements \core_privacy\local\metadata\null_provider {

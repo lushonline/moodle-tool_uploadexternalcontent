@@ -20,7 +20,7 @@
  * This file contains links and settings used by tool_uploadexternalcontent
  *
  * @package    tool_uploadexternalcontent
- * @copyright  2019-2020 LushOnline
+ * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die;

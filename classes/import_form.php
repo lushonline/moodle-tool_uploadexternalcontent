@@ -18,9 +18,11 @@
  * This file contains the form for selecting import file.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+namespace tool_uploadexternalcontent;
+
 defined('MOODLE_INTERNAL') || die('Direct access to this script is forbidden.');
 require_once($CFG->libdir.'/formslib.php');
 
@@ -28,10 +30,10 @@ require_once($CFG->libdir.'/formslib.php');
  * The form for selecting import file.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tool_uploadexternalcontent_import_form extends moodleform {
+class import_form extends \moodleform {
 
     /**
      * Define the form - called by parent constructor
@@ -51,7 +53,7 @@ class tool_uploadexternalcontent_import_form extends moodleform {
         $mform->addElement('hidden', 'needsconfirm', 1);
         $mform->setType('needsconfirm', PARAM_BOOL);
 
-        $choices = csv_import_reader::get_delimiter_list();
+        $choices = \csv_import_reader::get_delimiter_list();
         $mform->addElement('select', 'delimiter_name', get_string('csvdelimiter', 'tool_uploadexternalcontent'), $choices);
         if (array_key_exists('cfg', $choices)) {
             $mform->setDefault('delimiter_name', 'cfg');
@@ -62,7 +64,7 @@ class tool_uploadexternalcontent_import_form extends moodleform {
         }
         $mform->addHelpButton('delimiter_name', 'csvdelimiter', 'tool_uploadexternalcontent');
 
-        $choices = core_text::get_encodings();
+        $choices = \core_text::get_encodings();
         $mform->addElement('select', 'encoding', get_string('encoding', 'tool_uploadexternalcontent'), $choices);
         $mform->setDefault('encoding', 'UTF-8');
         $mform->addHelpButton('encoding', 'encoding', 'tool_uploadexternalcontent');

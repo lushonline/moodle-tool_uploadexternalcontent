@@ -18,7 +18,7 @@
  * Strings for component 'tool_uploadexternalcontent', language 'en'
  *
  * @package    tool_uploadexternalcontent
- * @copyright  2019-2020 LushOnline
+ * @copyright  2019-2023 LushOnline
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -39,17 +39,18 @@ $string['encoding_help'] = 'Encoding of the CSV file.';
 $string['importvaluesheader'] = 'Import settings';
 $string['columnsheader'] = 'Columns';
 
+$string['downloadthumbnail'] = 'Download thumbnail';
+$string['downloadthumbnail_help'] = 'Download the thumbnail and add to the course overview.';
+
 // Tracker.
+$string['uploadexternalcontentresult'] = 'Upload results';
 $string['csvline'] = 'Line';
 $string['id'] = 'ID';
 $string['result'] = 'Result';
-$string['uploadexternalcontentresult'] = 'Upload results';
+$string['actions'] = 'Actions';
 $string['coursestotal'] = 'Courses total: {$a}';
-$string['coursescreated'] = 'Courses created: {$a}';
-$string['coursesupdated'] = 'Courses updated: {$a}';
-$string['coursesdeleted'] = 'Courses deleted: {$a}';
-$string['coursesnotupdated'] = 'Courses not updated: {$a}';
-$string['courseserrors'] = 'Courses errors: {$a}';
+$string['coursessuccess'] = 'Courses success: {$a}';
+$string['coursesfailed'] = 'Courses fail: {$a}';
 
 // CLI.
 $string['invalidcsvfile'] = 'File format is invalid.';
@@ -62,6 +63,11 @@ $string['thumbnailsamesource'] = 'Thumbnail is the same source as current thumbn
 $string['thumbnaildownloaded'] = 'Thumbnail downloaded and added.';
 $string['thumbnaildownloaderror'] = 'Thumbnail could not be retrieved. {$a}.';
 
+$string['thumbnailcustomfield'] = 'Thumbnail custom field added.';
+$string['thumbnailcustomfielddoesnotexist'] = 'Thumbnail custom field does not exist so skipped.';
+$string['thumbnailcustomfielderror'] = 'Thumbnail custom field could not be added. {$a}.';
+
+
 // Importer.
 $string['invalidfileexception'] = 'File format is invalid. {$a}';
 $string['invalidimportfile'] = 'File format is invalid.';
@@ -69,8 +75,6 @@ $string['invalidparentcategoryid'] = 'Parent category is invalid.';
 $string['invalidimportfileheaders'] = 'File headers are invalid. Not enough columns, please verify the delimiter setting.';
 $string['invalidimportfilenorecords'] = 'No records in import file.';
 $string['invalidimportrecord'] = 'Invalid Import Record.';
-$string['statuscoursecreated'] = 'Course Created.';
-$string['statuscourseupdated'] = 'Course Updated.';
-$string['statuscoursenotupdated'] = 'Course Not Updated.';
-$string['statusextcreated'] = 'External content Created.';
-$string['statusextupdated'] = 'External content Updated.';
+
+
+

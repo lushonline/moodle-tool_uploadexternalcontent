@@ -18,18 +18,22 @@
  * This file contains the procesing for the add/update of a single external content course.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+namespace tool_uploadexternalcontent;
+
+use \tool_uploadexternalcontent\helper;
+use \tool_uploadexternalcontent\tracker;
 
 /**
  * Main processing class for adding and updating single external content course.
  *
  * @package   tool_uploadexternalcontent
- * @copyright 2019-2020 LushOnline
+ * @copyright 2019-2023 LushOnline
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tool_uploadexternalcontent_importer {
+class importer {
 
     /**
      * @var array $error   Last error message.
@@ -37,9 +41,9 @@ class tool_uploadexternalcontent_importer {
     public $error = array();
 
     /**
-     * @var array $records   The records to process.
+     * @var array $importedrows   The rows of imported data to process.
      */
-    public $records = array();
+    public $importedrows = array();
 
     /**
      * @var int $importid   The import id.
@@ -169,17 +173,17 @@ class tool_uploadexternalcontent_importer {
     }
 
     /**
-     * Get the row of data from the CSV
+     * Get the specific column data from the CSV row
      *
-     * @param int $row
-     * @param int $index
+     * @param int $csvrow
+     * @param int $columnindex
      * @return object
      */
-    private function get_row_data($row, $index) {
-        if ($index < 0) {
+    private function get_csvrow_data($csvrow, $columnindex) {
+        if ($columnindex < 0) {
             return '';
         }
-        return isset($row[$index]) ? $row[$index] : '';
+        return isset($csvrow[$columnindex]) ? $csvrow[$columnindex] : '';
     }
 
     /**
@@ -218,8 +222,8 @@ class tool_uploadexternalcontent_importer {
             return false;
         }
 
-        $this->importid = csv_import_reader::get_new_iid($type);
-        $this->importer = new csv_import_reader($this->importid, $type);
+        $this->importid = \csv_import_reader::get_new_iid($type);
+        $this->importer = new \csv_import_reader($this->importid, $type);
 
         if (!$this->importer->load_csv_content($text, $encoding, $delimiter)) {
             $this->importer->cleanup();
@@ -237,11 +241,12 @@ class tool_uploadexternalcontent_importer {
      * @param string $encoding
      * @param string $delimiter
      * @param integer $category
+     * @param bool $downloadthumbnail
      * @param integer $importid
      * @param object $mappingdata
      */
     public function __construct($text = null, $encoding = null, $delimiter = 'comma',
-                                $category = null, $importid = 0, $mappingdata = null) {
+                                $category = null, $downloadthumbnail = 0, $importid = 0, $mappingdata = null) {
         global $CFG;
         require_once($CFG->libdir . '/csvlib.class.php');
 
@@ -254,7 +259,7 @@ class tool_uploadexternalcontent_importer {
                 return;
             }
         } else {
-            $this->importer = new csv_import_reader($this->importid, $type);
+            $this->importer = new \csv_import_reader($this->importid, $type);
         }
 
         if (!$this->importer->init()) {
@@ -263,7 +268,7 @@ class tool_uploadexternalcontent_importer {
                return;
         }
 
-        $categorycheck = tool_uploadexternalcontent_helper::resolve_category_by_id_or_idnumber($category);
+        $categorycheck = \tool_uploadexternalcontent\helper::resolve_category_by_id_or_idnumber($category);
         if ($categorycheck == null) {
             $this->fail(get_string('invalidparentcategoryid', 'tool_uploadexternalcontent'));
             $this->importer->cleanup();
@@ -279,53 +284,38 @@ class tool_uploadexternalcontent_importer {
             return;
         }
 
-        // Retrieve the External Content defaults.
-        $extcontdefaults = get_config('externalcontent');
+        $normalizedrow = null;
+        $this->importedrows = array();
 
-        $record = null;
-        $records = array();
-
-        while ($row = $this->importer->next()) {
-            $mapping = $this->read_mapping_data($mappingdata);
-
-            $record = new \stdClass();
-            $record->course_idnumber = $this->get_row_data($row, $mapping['course_idnumber']);
-            $record->course_shortname = $this->get_row_data($row, $mapping['course_shortname']);
-            $record->course_fullname = $this->get_row_data($row, $mapping['course_fullname']);
-            $record->course_summary = $this->get_row_data($row, $mapping['course_summary']);
-            $record->course_tags = $this->get_row_data($row, $mapping['course_tags']);
-            $record->course_visible = clean_param(
-                                    $this->get_row_data($row, $mapping['course_visible']),
+        $mapping = $this->read_mapping_data($mappingdata);
+        while ($csvrow = $this->importer->next()) {
+            $normalizedrow = new \stdClass();
+            $normalizedrow->course_idnumber = $this->get_csvrow_data($csvrow, $mapping['course_idnumber']);
+            $normalizedrow->course_shortname = $this->get_csvrow_data($csvrow, $mapping['course_shortname']);
+            $normalizedrow->course_fullname = $this->get_csvrow_data($csvrow, $mapping['course_fullname']);
+            $normalizedrow->course_summary = $this->get_csvrow_data($csvrow, $mapping['course_summary']);
+            $normalizedrow->course_tags = $this->get_csvrow_data($csvrow, $mapping['course_tags']);
+            $normalizedrow->course_visible = clean_param(
+                                    $this->get_csvrow_data($csvrow, $mapping['course_visible']),
                                     PARAM_BOOL);
-            $record->course_thumbnail = $this->get_row_data($row, $mapping['course_thumbnail']);
-            $record->course_categoryidnumber = $this->get_row_data($row, $mapping['course_categoryidnumber']);
-            $record->course_categoryname = $this->get_row_data($row, $mapping['course_categoryname']);
-            $record->external_name = $this->get_row_data($row, $mapping['external_name']);
-            $record->external_intro = $this->get_row_data($row, $mapping['external_intro']);
-            $record->external_content = $this->get_row_data($row, $mapping['external_content']);
-            $record->external_markcompleteexternally = clean_param(
-                                                    $this->get_row_data($row, $mapping['external_markcompleteexternally']),
+            $normalizedrow->course_thumbnail = $this->get_csvrow_data($csvrow, $mapping['course_thumbnail']);
+            $normalizedrow->course_categoryidnumber = $this->get_csvrow_data($csvrow, $mapping['course_categoryidnumber']);
+            $normalizedrow->course_categoryname = $this->get_csvrow_data($csvrow, $mapping['course_categoryname']);
+            $normalizedrow->external_name = $this->get_csvrow_data($csvrow, $mapping['external_name']);
+            $normalizedrow->external_intro = $this->get_csvrow_data($csvrow, $mapping['external_intro']);
+            $normalizedrow->external_content = $this->get_csvrow_data($csvrow, $mapping['external_content']);
+            $normalizedrow->external_markcompleteexternally = clean_param(
+                                                    $this->get_csvrow_data($csvrow, $mapping['external_markcompleteexternally']),
                                                     PARAM_BOOL);
-            $record->category = $category;
+            $normalizedrow->category = $category;
 
-            // Set defaults.
-            if (property_exists($extcontdefaults, 'printheading')) {
-                $record->external_printheading = $extcontdefaults->printheading;
-            }
-            if (property_exists($extcontdefaults, 'printintro')) {
-                $record->external_printintro = $extcontdefaults->printintro;
-            }
-            if (property_exists($extcontdefaults, 'printlastmodifie')) {
-                $record->external_printlastmodified = $extcontdefaults->printlastmodifies;
-            }
-
-            array_push($records, $record);
+            $normalizedrow->downloadthumbnail = $downloadthumbnail;
+            array_push($this->importedrows, $normalizedrow);
         }
 
-        $this->records = $records;
         $this->importer->close();
 
-        if ($this->records == null) {
+        if ($this->importedrows == null) {
                $this->fail(get_string('invalidimportfilenorecords', 'tool_uploadexternalcontent'));
                return;
         }
@@ -357,158 +347,59 @@ class tool_uploadexternalcontent_importer {
      * @return void
      */
     public function execute($tracker = null) {
-        global $DB, $CFG;
+        global $CFG;
 
         require_once($CFG->dirroot . '/course/lib.php');
         require_once($CFG->libdir . '/phpunit/classes/util.php');
         require_once($CFG->dirroot . '/mod/externalcontent/lib.php');
 
         if ($this->processstarted) {
-              throw new coding_exception('Process has already been started');
+              throw new \coding_exception('Process has already been started');
         }
         $this->processstarted = true;
 
         if (empty($tracker)) {
-              $tracker = new tool_uploadexternalcontent_tracker(tool_uploadexternalcontent_tracker::NO_OUTPUT);
+              $tracker = new \tool_uploadexternalcontent\tracker(\tool_uploadexternalcontent\tracker::NO_OUTPUT);
         }
         $tracker->start();
 
-        $generator = phpunit_util::get_data_generator();
-
-        $total = $created = $updated = $deleted = $nochange = $errors = 0;
+        $total = $success = $failed = 0;
 
         // We will most certainly need extra time and memory to process big files.
-        core_php_time_limit::raise();
+        \core_php_time_limit::raise();
         raise_memory_limit(MEMORY_EXTRA);
 
-        $coursecreatedmsg = get_string('statuscoursecreated', 'tool_uploadexternalcontent');
-        $courseupdatedmsg = get_string('statuscourseupdated', 'tool_uploadexternalcontent');
-        $coursenotupdatedmsg = get_string('statuscoursenotupdated', 'tool_uploadexternalcontent');
-        $extcreatedmsg = get_string('statusextcreated', 'tool_uploadexternalcontent');
-        $extupdatedmsg = get_string('statusextupdated', 'tool_uploadexternalcontent');
-        $invalidrecordmsg = get_string('invalidimportrecord', 'tool_uploadexternalcontent');
-
         // Now actually do the work.
-        foreach ($this->records as $record) {
-            $status = array();
-            $this->linenb++;
-            $total++;
+        foreach ($this->importedrows as $importedrow) {
+            $this->linenb += 1;
+            $total += 1;
 
-            if (tool_uploadexternalcontent_helper::validate_import_record($record)) {
-                $course = tool_uploadexternalcontent_helper::create_course_from_imported($record);
-                $activity = tool_uploadexternalcontent_helper::create_externalcontent_from_imported($record);
-
-                if ($existing = tool_uploadexternalcontent_helper::get_course_by_idnumber($course->idnumber)) {
-                    $updatecourse = true;
-                    if (!$mergedcourse = tool_uploadexternalcontent_helper::update_course_with_imported($existing, $course)) {
-                        $updatecourse = false;
-                        $mergedcourse = $existing;
-                    }
-
-                    if ($record->course_thumbnail != '') {
-                        $response = tool_uploadexternalcontent_helper::add_course_thumbnail($mergedcourse->id,
-                                                                                            $record->course_thumbnail);
-                        $status[] = $response->status;
-                    }
-
-                    // Now check the externalcontent.
-                    $addactivity = $updateactivity = false;
-                    $existingactivity = tool_uploadexternalcontent_helper::get_externalcontent_by_idnumber($mergedcourse->idnumber,
-                                        $mergedcourse->id);
-
-                    if ($existingactivity) {
-                        $addactivity = false;
-                        $updateactivity = true;
-
-                        $mergedactivity = tool_uploadexternalcontent_helper::update_externalcontent_with_imported(
-                                            $existingactivity, $activity);
-                        if ( $mergedactivity === false) {
-                            $updateactivity = false;
-                            $addactivity = false;
-                            $mergedactivity = $activity;
-                        }
-                    } else {
-                        $activity->course = $existing->id;
-                        $addactivity = true;
-                        $updateactivity = false;
-                        $mergedactivity = $activity;
-                    }
-
-                    if ($updatecourse === false && $addactivity === false && $updateactivity === false) {
-                        // Course data not changed.
-                        $nochange++;
-                        $status[] = $coursenotupdatedmsg;
-                        $tracker->output($this->linenb, true, $status, $mergedcourse);
-                    } else {
-                        // Course or external content differs so we need to update.
-                        $updated++;
-
-                        if ($updatecourse) {
-                            update_course($mergedcourse);
-                            $status[] = $courseupdatedmsg;
-                        }
-
-                        if ($addactivity) {
-                            $activityresponse = $generator->create_module('externalcontent',  $mergedactivity);
-                            $mergedactivity->id = $activityresponse->id;
-
-                            $cm = get_coursemodule_from_instance('externalcontent',  $mergedactivity->id);
-                            $cm->idnumber = $mergedcourse->idnumber;
-                            $DB->update_record('course_modules', $cm);
-                            $status[] = $courseupdatedmsg;
-                            $status[] = $extcreatedmsg;
-                            tool_uploadexternalcontent_helper::update_course_completion_criteria($mergedcourse, $cm);
-                        }
-
-                        if ($updateactivity) {
-                            $DB->update_record('externalcontent',  $mergedactivity);
-                            $cm = get_coursemodule_from_instance('externalcontent',  $mergedactivity->id);
-                            $cm->idnumber = $course->idnumber;
-                            $DB->update_record('course_modules', $cm);
-                            $status[] = $courseupdatedmsg;
-                            $status[] = $extupdatedmsg;
-                            tool_uploadexternalcontent_helper::update_course_completion_criteria($mergedcourse, $cm);
-                        }
-                        $tracker->output($this->linenb, true, $status, $mergedcourse);
-                    }
-                } else {
-                    $created++;
-                    $status[] = $coursecreatedmsg;
-
-                    $newcourse = create_course($course);
-                    $activity->course = $newcourse->id;
-
-                    if ($record->course_thumbnail != '') {
-                        $response = tool_uploadexternalcontent_helper::add_course_thumbnail($newcourse->id,
-                                                                                            $record->course_thumbnail);
-                        if ($response->thumbnailfile) {
-                            $newcourse->overviewfiles_filemanager = $response->thumbnailfile->get_itemid();
-                        }
-                        $status[] = $response->status;
-                        update_course($newcourse);
-                    }
-
-                    // Now we need to add a External content.
-                    $activityrecord = $generator->create_module('externalcontent', $activity);
-
-                    $cm = get_coursemodule_from_instance('externalcontent', $activityrecord->id);
-                    $cm->idnumber = $course->idnumber;
-                    $DB->update_record('course_modules', $cm);
-
-                    tool_uploadexternalcontent_helper::update_course_completion_criteria($newcourse, $cm);
-
-                    $tracker->output($this->linenb, true, $status, $newcourse);
-                }
-            } else {
-                $errors++;
-                $status[] = $invalidrecordmsg;
-
-                $tracker->output($this->linenb, false, $status, null);
+            $importresult = \tool_uploadexternalcontent\helper::import_row($importedrow,
+                                                        $importedrow->category,
+                                                        $importedrow->downloadthumbnail);
+            if ($importresult->success) {
+                $tracker->output($this->linenb,
+                                 true,
+                                 $importresult->courseid,
+                                 $importresult->coursefullname,
+                                 $importresult->message
+                                );
+                $success += 1;
             }
-        }
 
+            if (!$importresult->success) {
+                $tracker->output($this->linenb,
+                                 false,
+                                 $importresult->courseid,
+                                 $importresult->coursefullname,
+                                 $importresult->message
+                                );
+                $failed += 1;
+            }
+
+        }
         $tracker->finish();
-        $tracker->results($total, $created, $updated, $deleted, $nochange, $errors);
+        $tracker->results($total, $success, $failed);
         return $tracker->get_buffer();
     }
 }
