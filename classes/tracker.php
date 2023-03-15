@@ -214,7 +214,7 @@ class tracker {
      * @param bool $outcome success or not?
      * @param int $courseid The course id
      * @param string $coursefullname The course fullname
-     * @param string $message extra data to display.
+     * @param string $actions The actions that occured.
      * @return void
      */
     public function output($row, $outcome, $courseid, $coursefullname, $actions) {
