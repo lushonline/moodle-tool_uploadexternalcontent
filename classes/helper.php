@@ -201,7 +201,7 @@ class helper {
      * @param object $row The row we imported from the csv
      * @param string|int $parentcategory The parentcategory name or id
      * @param bool $thumbnail If true, then the thumbnail for the course will be processed.
-     * @return mod_externalcontent\importrecord|bool The row converted to an importrecord, or false if not valid
+     * @return mod_externalcontent\importrecord|null The row converted to an importrecord, or null if not valid
      */
     public static function row_to_importrecord($row, $parentcategory = null, $thumbnail = true) : ?importrecord {
 
