@@ -19,6 +19,6 @@ Feature: An admin can update a single external content activity course using a t
     And I upload "admin/tool/uploadexternalcontent/tests/fixtures/onecourseupdate.csv" file to "CSV file" filemanager
     And I press "Import"
     And I press "Confirm"
-    And I should see "Courses updated: 1"
+    And I should see "Courses success: 1"
     And I am on site homepage
     And I should see "C1b49aa30-e719-11e6-9835-f723b46a2688 Full Name Updated"
